@@ -289,30 +289,182 @@ def get_font(size, weight, style):
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
 
+BLOCK_ELEMENTS = [
+    "html",
+    "body",
+    "article",
+    "section",
+    "nav",
+    "aside",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "hgroup",
+    "header",
+    "footer",
+    "address",
+    "p",
+    "hr",
+    "pre",
+    "blockquote",
+    "ol",
+    "ul",
+    "menu",
+    "li",
+    "dl",
+    "dt",
+    "dd",
+    "figure",
+    "figcaption",
+    "main",
+    "div",
+    "table",
+    "form",
+    "fieldset",
+    "legend",
+    "details",
+    "summary",
+]
 
-class Layout:
-    def __init__(self, tree):
-        self.display_list = []
 
-        # buffer to store words in a line
-        # entries have x but not y (not computed in the first pass)
-        self.line = []
+class DrawText:
+    """Drawing command to render a text string on a Tkinter canvas"""
 
-        self.cursor_x = HSTEP
-        self.cursor_y = VSTEP
+    def __init__(self, x: float, y: float, text: str, font: tkinter.font.Font):
+        self.top = y
+        self.bottom = y + font.metrics("linespace")
+        self.left = x
+        self.text = text
+        self.font = font
 
-        self.weight = "normal"
-        self.style = "roman"
-        self.size = 12
+    def execute(self, scroll: float, canvas: tkinter.Canvas):
+        canvas.create_text(
+            self.left,
+            self.top - scroll,
+            text=self.text,
+            font=self.font,
+            anchor="nw",  # top-left
+        )
 
-        # Wark the HTML tree recursively
-        self.recurse(tree)
 
-        # Flush the line buffer once more
-        self.flush()
+class DrawRectangle:
+    """Drawing command to render a filled rectangle on a Tkinter canvas"""
+
+    def __init__(self, x1: float, y1: float, x2: float, y2: float, color: str):
+        self.top = y1
+        self.left = x1
+        self.bottom = y2
+        self.right = x2
+        self.color = color
+
+    def execute(self, scroll: float, canvas: tkinter.Canvas):
+        canvas.create_rectangle(
+            self.left,
+            self.top - scroll,
+            self.right,
+            self.bottom - scroll,
+            width=0,  # remove border
+            fill=self.color,
+        )
+
+
+class BlockLayout:
+    """Represent a layout node"""
+
+    def __init__(self, node, parent, previous):
+        self.node = node
+        self.parent = parent
+        self.previous = previous
+        self.children = []
+
+        # Store info needed to display words: coordinates, text, font
+        self.words_display_info = []   
+
+        self.x = None
+        self.y = None
+        self.width = None
+        self.height = None
+
+    def layout(self):
+        # Each block starts at its parent's left edge,
+        # and span all the width of its parent.
+        self.x = self.parent.x
+        self.width = self.parent.width
+
+        # Vertical position:
+        # - If there's a previous sibling, starts right after it.
+        # - Otherwise, starts at the parent's top edge.
+        if self.previous:
+            self.y = self.previous.y + self.previous.height
+        else:
+            self.y = self.parent.y
+
+        mode = self.layout_mode()
+        if mode == "block":
+            previous = None
+            for child in self.node.children:
+                child_layout = BlockLayout(node=child, parent=self, previous=previous)
+                self.children.append(child_layout)
+                previous = child_layout
+        else:
+            # Relative positions to the block's x and y
+            self.cursor_x = 0
+            self.cursor_y = 0
+
+            self.weight = "normal"
+            self.style = "roman"
+            self.size = 12
+
+            self.line = []  # buffer to store words info in a line
+            self.recurse(self.node)  # Walk the HTML tree to fill display list
+            self.flush()  # Flush the line buffer once more
+
+        for child_layout in self.children:
+            child_layout.layout()
+
+        # Height:
+        # - A block should be tall enough to contain all its children
+        # - A text container should be tall enough to contain all its text
+        if mode == "block":
+            self.height = sum(child_layout.height for child_layout in self.children)
+        else:
+            self.height = self.cursor_y
+
+        # [!] Notes:
+        # - x and width depends on x and width of its parent
+        #   -> x, width is computed before the children's layout calls.
+        # - y depends on y of its previous sibling
+        #   -> the recursive layout calls have to be in order.
+        # - Height depends on its children's height,
+        #   -> height is computed before the children's layout calls,
+        #      or after all text flushes.
+
+    def layout_mode(self):
+        # The node is a Text node -> inline
+        if isinstance(self.node, Text):
+            return "inline"
+        
+        # The node has children that are block elements -> block
+        elif any(
+            [
+                isinstance(child, Element) and child.tag in BLOCK_ELEMENTS
+                for child in self.node.children
+            ]
+        ):
+            return "block"
+        
+        # The node has children but none of them are block elements -> inline
+        elif self.node.children:
+            return "inline"
+
+        # The node has no children and isn't a Text node -> block 
+        return "block"
 
     def recurse(self, node):
-        """Wark the HTML tree recursively"""
+        """Walk the HTML tree recursively to fill display list"""
         if isinstance(node, Text):
             for word in node.text.split():
                 self.handle_word(word)
@@ -351,8 +503,9 @@ class Layout:
         font = get_font(self.size, self.weight, self.style)
         width = font.measure(word)
 
-        # Flush the line buffer when reaching right edge
-        if self.cursor_x + width > WIDTH - HSTEP:
+        # Flush the line buffer when reaching the right edge of the block
+        # (compare by relative positions)
+        if self.cursor_x + width > self.width:
             self.flush()
 
         self.line.append((self.cursor_x, word, font))
@@ -383,15 +536,86 @@ class Layout:
         max_descent = max([metric["descent"] for metric in metrics])
         self.cursor_y = baseline + max_descent * 1.25
 
-        # Place each word relative to baseline and add to display list
-        # (note that we use x, y as the top-left coordinates)
-        for x, word, font in self.line:
-            y = baseline - font.metrics("ascent")
-            self.display_list.append((x, y, word, font))
+        # Place each word relative to baseline and collect display info
+        # - note that x, y are top-left absolute coordinates
+        # - we need to add the block's x and y to relative_x and relative_y
+        for relative_x, word, font in self.line:
+            x = self.x + relative_x
+            y = self.y + baseline - font.metrics("ascent")
+            self.words_display_info.append((x, y, word, font))
 
         # Reset cursor_x and line buffer
-        self.cursor_x = HSTEP
+        self.cursor_x = 0
         self.line = []
+
+    def paint(self):
+        """Return the drawing commands (display list) for current layout"""
+        commands = []
+
+        # Add a gray background to 'pre' tags
+        if isinstance(self.node, Element) and self.node.tag == "pre":
+            print(self.layout_mode())
+            commands.append(
+                DrawRectangle(
+                    x1=self.x,
+                    y1=self.y,
+                    x2=self.x + self.width,
+                    y2=self.y + self.height,
+                    color="gray",
+                )
+            )
+
+        if self.layout_mode() == "inline":
+            # If current layout is a text container, add DrawText commands.
+            # Use the display info computed during 'recurse' and 'flush'.
+            for x, y, word, font in self.words_display_info:
+                commands.append(DrawText(x, y, word, font))
+
+        return commands
+
+        # [!] Note:
+        # - Background has to be drawn "below" the text
+        #   -> the code has to come before adding DrawText commands
+        # - Nested layouts are painted on top of parent layout
+        #   -> 'paint_tree' calls 'paint' before recursing into subtree
+
+
+class DocumentLayout:
+    """Represent the root of the layout tree"""
+
+    def __init__(self, node):
+        self.node = node
+        self.parent = None
+        self.children = []
+
+        self.x = None
+        self.y = None
+        self.width = None
+        self.height = None
+
+    def layout(self):
+        self.x = HSTEP
+        self.width = WIDTH - 2 * HSTEP
+        self.y = VSTEP
+
+        child = BlockLayout(node=self.node, parent=self, previous=None)
+        self.children.append(child)
+        child.layout()
+        self.height = child.height
+
+    def paint(self):
+        """Return the drawing commands (display list) for current layout"""
+        return []
+
+
+def paint_tree(layout, display_list):
+    """
+    Recursively walk the layout tree and collect all drawing commands (display list).
+    Each layout object generates its own drawing commands via the `paint` method.
+    """
+    display_list.extend(layout.paint())
+    for child_layout in layout.children:
+        paint_tree(child_layout, display_list)
 
 
 SCROLL_STEP = 100
@@ -410,26 +634,33 @@ class Browser:
         """Fetch and display content from the given URL"""
         body = url.request()
         tree = HTMLParser(body).parse()
-        self.display_list = Layout(tree).display_list
+
+        self.document = DocumentLayout(tree)
+        self.document.layout()
+
+        self.display_list = []
+        paint_tree(self.document, self.display_list)
+
         self.draw()
 
     def draw(self):
         """Draw the visible content on the screen"""
         self.canvas.delete("all")
-
-        for x, y, word, font in self.display_list:
-            if y > self.scroll + HEIGHT:
+        for draw_command in self.display_list:
+            # Skip off-screen items
+            if (
+                draw_command.top > self.scroll + HEIGHT
+                or draw_command.bottom < self.scroll
+            ):
                 continue
-            if y + VSTEP < self.scroll:
-                continue
 
-            self.canvas.create_text(
-                x, y - self.scroll, text=word, anchor="nw", font=font
-            )
+            draw_command.execute(self.scroll, self.canvas)
 
     def scroll_down(self, e):
         """Scroll downward and redraw the screen"""
-        self.scroll += SCROLL_STEP
+        # Avoid scrolling past the bottom
+        max_y = max(self.document.height + 2 * VSTEP - HEIGHT, 0)
+        self.scroll = min(self.scroll + SCROLL_STEP, max_y)
         self.draw()
 
 
