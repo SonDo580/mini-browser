@@ -9,5 +9,5 @@ Develop a simple web browser
 ## Usage
 
 ```bash
-python browser.py <url>
+python -m browser <url>
 ```
