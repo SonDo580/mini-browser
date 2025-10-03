@@ -8,6 +8,7 @@ class Text:
         self.text = text
         self.children = []  # always empty since text node is a leaf
         self.parent = parent
+        self.style: dict[str, str] = {} # only contains inherited styles
 
     def __repr__(self):
         return repr(self.text)
@@ -21,6 +22,7 @@ class Element:
         self.attributes = attributes
         self.children: list[Element | Text] = []
         self.parent = parent
+        self.style: dict[str, str] = {}
 
     def __repr__(self):
         return f"<{self.tag}>"

@@ -7,12 +7,15 @@ from browser.layout.base import BaseDrawCommand
 class DrawText(BaseDrawCommand):
     """Drawing command to render a text string on a Tkinter canvas"""
 
-    def __init__(self, x: float, y: float, text: str, font: tkinter.font.Font):
+    def __init__(
+        self, x: float, y: float, text: str, font: tkinter.font.Font, color: str
+    ):
         self.top = y
         self.bottom = y + font.metrics("linespace")
         self.left = x
         self.text = text
         self.font = font
+        self.color = color
 
     def execute(self, scroll: float, canvas: tkinter.Canvas) -> None:
         canvas.create_text(
@@ -21,6 +24,7 @@ class DrawText(BaseDrawCommand):
             text=self.text,
             font=self.font,
             anchor="nw",  # top-left
+            fill=self.color,
         )
 
 
