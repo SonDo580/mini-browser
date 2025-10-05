@@ -18,13 +18,13 @@ class BaseDrawCommand(abc.ABC):
 
 class BaseLayout(abc.ABC):
     """Abstract base class for layout objects."""
+    children: list[BaseLayout]
 
     def __init__(self):
         self._x: float | None = None
         self._y: float | None = None
         self._width: float | None = None
         self._height: float | None = None
-        self.children: list[BaseLayout] = []
 
     @abc.abstractmethod
     def layout(self) -> None:

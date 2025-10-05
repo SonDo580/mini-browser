@@ -10,6 +10,7 @@ class DocumentLayout(BaseLayout):
     def __init__(self, html_root: Element):
         super().__init__()
         self.html_root = html_root
+        self.children: list[BlockLayout] = []
 
     def layout(self) -> None:
         """Compute display info and recursively layout children."""
