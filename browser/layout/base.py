@@ -2,6 +2,8 @@ from __future__ import annotations
 import abc
 import tkinter
 
+from browser.html_parser.nodes import Text, Element
+
 
 class BaseDrawCommand(abc.ABC):
     """Abstract base class for drawing commands"""
@@ -18,6 +20,10 @@ class BaseDrawCommand(abc.ABC):
 
 class BaseLayout(abc.ABC):
     """Abstract base class for layout objects."""
+
+    node: Text | Element
+    parent: BaseLayout | None
+    previous: BaseLayout | None
     children: list[BaseLayout]
 
     def __init__(self):

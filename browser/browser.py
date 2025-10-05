@@ -8,7 +8,7 @@ from browser.css.common import style, cascade_priority
 from browser.css.default import DEFAULT_STYLE_SHEET
 from browser.css.css_parser import CSSParser
 from browser.layout.document_layout import DocumentLayout
-from browser.layout.base import BaseDrawCommand
+from browser.layout.base import BaseDrawCommand, BaseLayout
 from browser.layout.common import paint_tree
 from browser.utils.common import tree_to_list
 
@@ -21,14 +21,33 @@ class Browser:
         )
         self.canvas.pack()
 
-        self.scroll: float = 0
-        self.window.bind("<Down>", self.scroll_down)
+        self.window.bind("<Down>", self.scroll_down)  # press down key
+        self.window.bind("<Button-1>", self.handle_click)  # press left mouse button
 
-        self.document: DocumentLayout | None = None
+        self.scroll: float = 0
         self.display_list: list[BaseDrawCommand] = []
+
+        self._document: DocumentLayout | None = None
+        self._url: URL | None = None
+
+    @property
+    def document(self) -> DocumentLayout:
+        """Return the Document layout."""
+        if self._document is None:
+            raise ValueError("Document has not been initialized. Call load() first.")
+        return self._document
+
+    @property
+    def url(self) -> URL:
+        """Return the URL manager."""
+        if self._url is None:
+            raise ValueError("URL manager has not been initialized. Call load() first.")
+        return self._url
 
     def load(self, url: URL) -> None:
         """Fetch and display content from the given URL."""
+        self._url = url
+
         # ===== HTML =====
         # ================
         # Fetch and parse HTML
@@ -68,8 +87,13 @@ class Browser:
         # ===== Layout =====
         # ==================
         # Build layout tree
-        self.document = DocumentLayout(tree)
+        self._document = DocumentLayout(tree)
         self.document.layout()
+
+        # Reset display list and scroll offset
+        # (ensure clean state when navigating to a new page)
+        self.display_list = []
+        self.scroll = 0
 
         # Collect draw commands (display list)
         paint_tree(self.document, self.display_list)
@@ -92,11 +116,41 @@ class Browser:
 
             draw_command.execute(self.scroll, self.canvas)
 
-    def scroll_down(self, e) -> None:
+    def scroll_down(self, e: tkinter.Event) -> None:
         """Scroll downward without exceeding document's height"""
-        if self.document is None:
-            raise ValueError("Document has not been initialized. Call load() first.")
-
         max_y = max(self.document.height + 2 * VSTEP - HEIGHT, 0)
         self.scroll = min(self.scroll + SCROLL_STEP, max_y)
         self.draw()
+
+    def handle_click(self, e: tkinter.Event) -> None:
+        x, y = e.x, e.y  # Extract screen coordinates
+        y += self.scroll  # Convert to page coordinate
+
+        # Collect layouts that contain the click position
+        layouts = [
+            layout
+            for layout in tree_to_list(self.document, nodes=[])
+            if isinstance(layout, BaseLayout)
+            and layout.x <= x <= layout.x + layout.width
+            and layout.y <= y <= layout.y + layout.height
+        ]
+        if not layouts:
+            return
+
+        # Find the most specific node that was clicked
+        # (Real browsers have to compute stacking contexts to decide)
+        clicked_node = layouts[-1].node
+
+        # Climb back up the HTML tree to find a link element
+        current_node = clicked_node
+        while current_node:
+            if (
+                isinstance(current_node, Element)
+                and current_node.tag == "a"
+                and "href" in current_node.attributes
+            ):
+                # Navigate to the linked page
+                linked_url = self.url.resolve(current_node.attributes["href"])
+                return self.load(linked_url)
+            
+            current_node = current_node.parent

@@ -60,9 +60,7 @@ class BlockLayout(BaseLayout):
             # Create child blocks in order
             previous: BlockLayout | None = None
             for child in self.node.children:
-                child_layout = BlockLayout(
-                    node=child, parent=self, previous=previous
-                )
+                child_layout = BlockLayout(node=child, parent=self, previous=previous)
                 self.children.append(child_layout)
                 previous = child_layout
 
@@ -130,12 +128,16 @@ class BlockLayout(BaseLayout):
         """
         # Extract CSS styles and convert to Tk format
         font_weight = node.style["font-weight"]
+
         font_style = node.style["font-style"]
         if font_style == "normal":
-            font_style = "roman"  # CSS “normal” -> Tk “roman”
+            font_style = "roman"
+        elif font_style == "oblique":
+            font_style = "italic"
+
         font_size = int(
             float(node.style["font-size"][:-2]) * 0.75
-        )  # CSS pixels -> Tk points: slice off 'px' then multiply with 0.75
+        )  # CSS pixels -> Tk points
 
         font = get_font(font_size, font_weight, font_style)
         word_width = font.measure(word)

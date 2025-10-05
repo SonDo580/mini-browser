@@ -9,7 +9,9 @@ class DocumentLayout(BaseLayout):
 
     def __init__(self, html_root: Element):
         super().__init__()
-        self.html_root = html_root
+        self.node = html_root
+        self.parent = None
+        self.previous = None
         self.children: list[BlockLayout] = []
 
     def layout(self) -> None:
@@ -18,12 +20,12 @@ class DocumentLayout(BaseLayout):
         self._y = VSTEP
         self._width = WIDTH - 2 * HSTEP
 
-        child = BlockLayout(node=self.html_root, parent=self, previous=None)
-        self.children.append(child)
-        child.layout()
+        child_layout = BlockLayout(node=self.node, parent=self, previous=None)
+        self.children.append(child_layout)
+        child_layout.layout()
 
         # Compute document's height after child's 'layout' call
-        self._height = child.height
+        self._height = child_layout.height
 
     def paint(self) -> list[BaseDrawCommand]:
         """Return drawing commands (display list) for this layout."""
