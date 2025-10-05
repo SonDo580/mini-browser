@@ -22,6 +22,7 @@ class Browser:
         self.canvas.pack()
 
         self.window.bind("<Down>", self.scroll_down)  # press down key
+        self.window.bind("<Up>", self.scroll_up)  # press up key
         self.window.bind("<Button-1>", self.handle_click)  # press left mouse button
 
         self.scroll: float = 0
@@ -117,9 +118,14 @@ class Browser:
             draw_command.execute(self.scroll, self.canvas)
 
     def scroll_down(self, e: tkinter.Event) -> None:
-        """Scroll downward without exceeding document's height"""
+        """Scroll downward without exceeding document's height."""
         max_y = max(self.document.height + 2 * VSTEP - HEIGHT, 0)
         self.scroll = min(self.scroll + SCROLL_STEP, max_y)
+        self.draw()
+
+    def scroll_up(self, e: tkinter.Event) -> None:
+        """Scroll upward without passing the top of the document."""
+        self.scroll = max(self.scroll - SCROLL_STEP, 0)
         self.draw()
 
     def handle_click(self, e: tkinter.Event) -> None:
