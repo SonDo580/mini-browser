@@ -5,12 +5,23 @@ import tkinter
 from browser.html_parser.nodes import Text, Element
 
 
+class Rect:
+    """Represent a rectangular region."""
+
+    def __init__(self, left: float, top: float, right: float, bottom: float):
+        self.left = left
+        self.top = top
+        self.right = right
+        self.bottom = bottom
+
+    def contains_point(self, x: float, y: float) -> bool:
+        """Check if a point is contained in this region."""
+        return self.left <= x < self.right and self.top <= y < self.bottom
+
+
 class BaseDrawCommand(abc.ABC):
     """Abstract base class for drawing commands"""
-
-    top: float
-    left: float
-    bottom: float
+    rect: Rect
 
     @abc.abstractmethod
     def execute(self, scroll: float, canvas: tkinter.Canvas) -> None:
@@ -45,25 +56,25 @@ class BaseLayout(abc.ABC):
     @property
     def x(self) -> float:
         if self._x is None:
-            raise ValueError(self.__not_computed_message("x"))
+            raise Exception(self.__not_computed_message("x"))
         return self._x
 
     @property
     def y(self) -> float:
         if self._y is None:
-            raise ValueError(self.__not_computed_message("y"))
+            raise Exception(self.__not_computed_message("y"))
         return self._y
 
     @property
     def width(self) -> float:
         if self._width is None:
-            raise ValueError(self.__not_computed_message("Width"))
+            raise Exception(self.__not_computed_message("Width"))
         return self._width
 
     @property
     def height(self) -> float:
         if self._height is None:
-            raise ValueError(self.__not_computed_message("Height"))
+            raise Exception(self.__not_computed_message("Height"))
         return self._height
 
     def __not_computed_message(self, field: str) -> str:

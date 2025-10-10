@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 from browser.constants import BLOCK_ELEMENTS
 from browser.html_parser.nodes import Text, Element
 from browser.utils.font import get_font
-from browser.layout.base import BaseLayout, BaseDrawCommand
-from browser.layout.draw_commands import DrawRectangle
+from browser.layout.base import BaseLayout, BaseDrawCommand, Rect
+from browser.layout.draw_commands import DrawRect
 from browser.layout.line_layout import LineLayout
 from browser.layout.text_layout import TextLayout
 
@@ -161,17 +161,15 @@ class BlockLayout(BaseLayout):
 
     def paint(self) -> list[BaseDrawCommand]:
         """Return the drawing commands (display list) for current layout"""
-        # Add DrawRectangle command to draw background
+        # Add DrawRect command to draw background
         bg_color = self.node.style.get("background-color", "transparent")
         if bg_color != "transparent":
-            return [
-                DrawRectangle(
-                    x1=self.x,
-                    y1=self.y,
-                    x2=self.x + self.width,
-                    y2=self.y + self.height,
-                    color=bg_color,
-                )
-            ]
+            rect = Rect(
+                top=self.x,
+                left=self.y,
+                right=self.x + self.width,
+                bottom=self.y + self.height,
+            )
+            return [DrawRect(rect=rect, color=bg_color)]
 
         return []

@@ -4,7 +4,6 @@ WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
 
-
 # ***** HTML elements *****
 # *************************
 SELF_CLOSING_TAGS = [
@@ -75,3 +74,7 @@ BLOCK_ELEMENTS = [
     "details",
     "summary",
 ]
+
+# ***** Other *****
+# *****************
+DEFAULT_LINK = "https://browser.engineering/"

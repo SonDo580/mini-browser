@@ -49,7 +49,15 @@ class TextLayout(BaseLayout):
         """Return drawing commands (display list) for this layout."""
         # Add a single DrawText comment
         text_color = self.node.style["color"]
-        return [DrawText(self.x, self.y, self.word, self.font, text_color)]
+        return [
+            DrawText(
+                left=self.x,
+                top=self.y,
+                text=self.word,
+                font=self.font,
+                color=text_color,
+            )
+        ]
 
     @BaseLayout.y.setter
     def y(self, value: float) -> None:
