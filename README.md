@@ -11,3 +11,6 @@ Develop a simple web browser
 ```bash
 python -m browser <url>
 ```
+
+- Run the browser with an optional `url` argument.
+- If no URL is provided, it will open the default page "https://browser.engineering/".
