@@ -20,6 +20,8 @@ class Browser:
         self.window.bind("<Down>", self.handle_down)  # press down key
         self.window.bind("<Up>", self.handle_up)  # press up key
         self.window.bind("<Button-1>", self.handle_click)  # press left mouse button
+        self.window.bind("<Key>", self.handle_key)  # capture all key presses
+        self.window.bind("<Return>", self.handle_enter)  # press enter key
 
         # Init Chrome after creating Tk window since it needs to call get_font.
         # tkinter.font.Font() requires a default Tk root window to exist.
@@ -60,6 +62,19 @@ class Browser:
             # Click on the tab content area
             tab_y = e.y - self.chrome.bottom  # subtract the chrome size
             self.active_tab.click(e.x, tab_y)
+        self.draw()
+
+    def handle_key(self, e: tkinter.Event) -> None:
+        char = e.char
+
+        if len(char) == 0 or not (0x20 < ord(char) < 0x7f):
+            return
+        
+        self.chrome.keypress(char)
+        self.draw()
+
+    def handle_enter(self, e: tkinter.Event) -> None:
+        self.chrome.enter()
         self.draw()
 
     def draw(self) -> None:

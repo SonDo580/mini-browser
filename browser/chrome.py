@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+from enum import Enum
 
 from browser.constants import WIDTH, DEFAULT_LINK
 from browser.url import URL
@@ -9,6 +10,10 @@ from browser.utils.font import get_font
 
 if TYPE_CHECKING:
     from browser.browser import Browser
+
+
+class ChromeComponent(Enum):
+    ADDRESS_BAR = "address_bar"
 
 
 class Chrome:
@@ -34,6 +39,10 @@ class Chrome:
         self.url_bar_bottom = self.url_bar_top + self.font_height + 2 * self.padding
         self.back_button_rect = self._get_back_button_rect()
         self.address_bar_rect = self._get_address_bar_rect()
+
+        # Address editing
+        self.focused_component: ChromeComponent | None = None
+        self.address_input = ""
 
         self.bottom = self.url_bar_bottom
 
@@ -84,139 +93,205 @@ class Chrome:
         """Return the draw commands (display list) to render the chrome."""
         commands: list[BaseDrawCommand] = []
 
-        # Chrome's background and bottom border
-        commands.extend(
-            [
-                DrawRect(
-                    rect=Rect(left=0, top=0, right=WIDTH, bottom=self.bottom),
-                    color="white",
-                ),
-                DrawLine(
-                    rect=Rect(left=0, top=self.bottom, right=WIDTH, bottom=self.bottom),
-                    color="black",
-                    thickness=1,
-                ),
-            ]
-        )
+        # Chrome's background and border
+        commands.extend(self._paint_background_and_border())
 
         # New-Tab button
-        commands.extend(
-            [
-                DrawOutline(rect=self.new_tab_button_rect, color="black", thickness=1),
-                DrawText(
-                    left=self.new_tab_button_rect.left + self.padding,
-                    top=self.new_tab_button_rect.top,
-                    text="+",
-                    font=self.font,
-                    color="black",
-                ),
-            ]
-        )
+        commands.extend(self._paint_new_tab_button())
 
         # Tabs
+        commands.extend(self._paint_tabs())
+
+        # Go-back button
+        commands.extend(self._paint_back_button())
+
+        # Address bar
+        commands.extend(self._paint_address_bar())
+
+        return commands
+
+    def _paint_background_and_border(self) -> list[BaseDrawCommand]:
+        return [
+            DrawRect(
+                rect=Rect(left=0, top=0, right=WIDTH, bottom=self.bottom),
+                color="white",
+            ),
+            DrawLine(
+                rect=Rect(left=0, top=self.bottom, right=WIDTH, bottom=self.bottom),
+                color="black",
+                thickness=1,
+            ),
+        ]
+
+    def _paint_new_tab_button(self) -> list[BaseDrawCommand]:
+        return [
+            DrawOutline(rect=self.new_tab_button_rect, color="black", thickness=1),
+            DrawText(
+                left=self.new_tab_button_rect.left + self.padding,
+                top=self.new_tab_button_rect.top,
+                text="+",
+                font=self.font,
+                color="black",
+            ),
+        ]
+
+    def _paint_tabs(self) -> list[BaseDrawCommand]:
+        commands: list[BaseDrawCommand] = []
+
         for i, tab in enumerate(self.browser.tabs):
-            tab_rect = self._get_tab_rect(i)
             # Add left/right borders and tag name
-            commands.extend(
-                [
-                    DrawLine(
-                        rect=Rect(
-                            left=tab_rect.left,
-                            top=tab_rect.top,
-                            right=tab_rect.left,
-                            bottom=tab_rect.bottom,
-                        ),
-                        color="black",
-                        thickness=1,
-                    ),
-                    DrawLine(
-                        rect=Rect(
-                            left=tab_rect.right,
-                            top=tab_rect.top,
-                            right=tab_rect.right,
-                            bottom=tab_rect.bottom,
-                        ),
-                        color="black",
-                        thickness=1,
-                    ),
-                    DrawText(
-                        left=tab_rect.left + self.padding,
-                        top=tab_rect.top + self.padding,
-                        text=f"Tab {i}",
-                        font=self.font,
-                        color="black",
-                    ),
-                ]
-            )
+            commands.extend(self._paint_tab(i))
 
             # Distinguish the active tab
             if tab == self.browser.active_tab:
-                commands.extend(
-                    [
-                        DrawLine(
-                            rect=Rect(
-                                left=0,
-                                top=tab_rect.bottom,
-                                right=tab_rect.left,
-                                bottom=tab_rect.bottom,
-                            ),
-                            color="black",
-                            thickness=1,
-                        ),
-                        DrawLine(
-                            rect=Rect(
-                                left=tab_rect.right,
-                                top=tab_rect.bottom,
-                                right=WIDTH,
-                                bottom=tab_rect.bottom,
-                            ),
-                            color="black",
-                            thickness=1,
-                        ),
-                    ]
-                )
-
-        # Go-back button
-        commands.extend(
-            [
-                DrawOutline(rect=self.back_button_rect, color="black", thickness=1),
-                DrawText(
-                    left=self.back_button_rect.left + self.padding,
-                    top=self.back_button_rect.top,
-                    text="<",
-                    font=self.font,
-                    color="black",
-                ),
-            ]
-        )
-
-        # Address bar
-        commands.extend(
-            [
-                DrawOutline(rect=self.address_bar_rect, color="black", thickness=1),
-                DrawText(
-                    left=self.address_bar_rect.left + self.padding,
-                    top=self.address_bar_rect.top,
-                    text=str(self.browser.active_tab.url),
-                    font=self.font,
-                    color="black",
-                ),
-            ]
-        )
+                commands.extend(self._paint_active_tab_indicator(i))
 
         return commands
+
+    def _paint_tab(self, tab_index: int) -> list[BaseDrawCommand]:
+        tab_rect = self._get_tab_rect(tab_index)
+        return [
+            DrawLine(
+                rect=Rect(
+                    left=tab_rect.left,
+                    top=tab_rect.top,
+                    right=tab_rect.left,
+                    bottom=tab_rect.bottom,
+                ),
+                color="black",
+                thickness=1,
+            ),
+            DrawLine(
+                rect=Rect(
+                    left=tab_rect.right,
+                    top=tab_rect.top,
+                    right=tab_rect.right,
+                    bottom=tab_rect.bottom,
+                ),
+                color="black",
+                thickness=1,
+            ),
+            DrawText(
+                left=tab_rect.left + self.padding,
+                top=tab_rect.top + self.padding,
+                text=f"Tab {tab_index}",
+                font=self.font,
+                color="black",
+            ),
+        ]
+
+    def _paint_active_tab_indicator(self, tab_index: int) -> list[BaseDrawCommand]:
+        tab_rect = self._get_tab_rect(tab_index)
+        return [
+            DrawLine(
+                rect=Rect(
+                    left=0,
+                    top=tab_rect.bottom,
+                    right=tab_rect.left,
+                    bottom=tab_rect.bottom,
+                ),
+                color="black",
+                thickness=1,
+            ),
+            DrawLine(
+                rect=Rect(
+                    left=tab_rect.right,
+                    top=tab_rect.bottom,
+                    right=WIDTH,
+                    bottom=tab_rect.bottom,
+                ),
+                color="black",
+                thickness=1,
+            ),
+        ]
+
+    def _paint_back_button(self) -> list[BaseDrawCommand]:
+        return [
+            DrawOutline(rect=self.back_button_rect, color="black", thickness=1),
+            DrawText(
+                left=self.back_button_rect.left + self.padding,
+                top=self.back_button_rect.top,
+                text="<",
+                font=self.font,
+                color="black",
+            ),
+        ]
+
+    def _paint_address_bar(self) -> list[BaseDrawCommand]:
+        commands: list[BaseDrawCommand] = [
+            DrawOutline(rect=self.address_bar_rect, color="black", thickness=1),
+            self._paint_address_text(),
+        ]
+
+        if self.focused_component == ChromeComponent.ADDRESS_BAR:
+            # Draw a cursor in editing mode
+            commands.append(self._paint_address_input_cursor())
+
+        return commands
+
+    def _paint_address_text(self) -> DrawText:
+        # Show current url by default
+        text = str(self.browser.active_tab.url)
+
+        if self.focused_component == ChromeComponent.ADDRESS_BAR:
+            # Show user input in editing mode
+            text = self.address_input
+
+        return DrawText(
+            left=self.address_bar_rect.left + self.padding,
+            top=self.address_bar_rect.top,
+            text=text,
+            font=self.font,
+            color="black",
+        )
+
+    def _paint_address_input_cursor(self) -> DrawLine:
+        address_input_width = self.font.measure(self.address_input)
+        return DrawLine(
+            rect=Rect(
+                left=self.address_bar_rect.left + self.padding + address_input_width,
+                top=self.address_bar_rect.top,
+                right=self.address_bar_rect.left + self.padding + address_input_width,
+                bottom=self.address_bar_rect.bottom,
+            ),
+            color="red",
+            thickness=1,
+        )
 
     def click(self, x: int, y: int) -> None:
         """Handle click events inside the chrome area."""
         if self.new_tab_button_rect.contains_point(x, y):
             # Create a new tab (with default URL)
             self.browser.new_tab(URL(DEFAULT_LINK))
-        elif self.back_button_rect.contains_point(x, y):
+            return
+
+        if self.back_button_rect.contains_point(x, y):
             # Go back to the previous page
             self.browser.active_tab.go_back()
-        else:
-            # Switch to the tab being clicked on
-            for i, tab in enumerate(self.browser.tabs):
-                if self.get_tab_rect(i).contains_point(x, y):
-                    self.browser.set_active_tab(tab)
-                    break
+            return
+
+        if self.address_bar_rect.contains_point(x, y):
+            # Focus and clear address bar contents to start editing
+            self.focused_component = ChromeComponent.ADDRESS_BAR
+            self.address_input = ""
+            return
+
+        # Switch to the tab being clicked on
+        for i, tab in enumerate(self.browser.tabs):
+            if self._get_tab_rect(i).contains_point(x, y):
+                self.browser.set_active_tab(tab)
+                return
+
+    def keypress(self, char: str) -> None:
+        """Handle keypress event."""
+        if self.focused_component == ChromeComponent.ADDRESS_BAR:
+            # Edit the address
+            self.address_input += char
+
+    def enter(self) -> None:
+        """Handle pressing Enter."""
+        if self.focused_component == ChromeComponent.ADDRESS_BAR:
+            # Go to the new address
+            self.browser.active_tab.load(URL(self.address_input))
+            self.focused_component = None
+            
