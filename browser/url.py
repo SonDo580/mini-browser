@@ -113,3 +113,16 @@ class URL:
         # Case 4: Host-relative path (or resolved path from case 3)
         # (ex) "/base.css" -> "https://example.com:8080/base.css"
         return URL(f"{self.scheme}://{self.host}:{self.port}{url}")
+
+    def __str__(self):
+        # Hide port number if using default port
+        port_part = f":{self.port}"
+        if (
+            self.scheme == "https"
+            and self.port == 443
+            or self.scheme == "http"
+            and self.port == 80
+        ):
+            port_part = ""
+
+        return f"{self.scheme}://{self.host}{port_part}{self.path}"

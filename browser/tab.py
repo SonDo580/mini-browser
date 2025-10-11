@@ -15,12 +15,14 @@ from browser.utils.common import tree_to_list
 
 class Tab:
     def __init__(self, tab_height: float):
-        self.tab_height = tab_height  # visible content's height
         self._url: URL | None = None
+        self.tab_height = tab_height  # visible content's height
+        self.history: list[URL] = [] # track visited pages
+
         self._document: DocumentLayout | None = None
         self.scroll: float = 0
         self.display_list: list[BaseDrawCommand] = []
-
+ 
     @property
     def document(self) -> DocumentLayout:
         """Return the Document layout."""
@@ -38,6 +40,7 @@ class Tab:
     def load(self, url: URL) -> None:
         """Fetch and display content from the given URL."""
         self._url = url
+        self.history.append(url) # record visited page
 
         # ===== HTML =====
         # ================
@@ -148,3 +151,11 @@ class Tab:
                 return self.load(linked_url)
 
             current_node = current_node.parent
+
+    def go_back(self) -> None:
+        """Go back to the previous page."""
+        # Pop the urls before calling 'load', since 'load' adds to history 
+        if len(self.history) >= 2:
+            self.history.pop() 
+            previous_url = self.history.pop() 
+            self.load(previous_url)

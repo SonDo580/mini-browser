@@ -24,13 +24,20 @@ class Chrome:
         self.font = get_font(size=20, weight="normal", style="roman")
         self.font_height = self.font.metrics("linespace")
 
+        # Tab bar (new-tab button + tabs)
         self.padding = 5
         self.tabbar_bottom = self.font_height + 2 * self.padding
-        self.new_tab_button_rect = self.get_new_tab_button_rect()
+        self.new_tab_button_rect = self._get_new_tab_button_rect()
 
-        self.bottom = self.tabbar_bottom
+        # URL bar (navigation buttons + address bar)
+        self.url_bar_top = self.tabbar_bottom
+        self.url_bar_bottom = self.url_bar_top + self.font_height + 2 * self.padding
+        self.back_button_rect = self._get_back_button_rect()
+        self.address_bar_rect = self._get_address_bar_rect()
 
-    def get_new_tab_button_rect(self) -> Rect:
+        self.bottom = self.url_bar_bottom
+
+    def _get_new_tab_button_rect(self) -> Rect:
         """Get rectangular boundary of the add-tag button."""
         button_width = self.font.measure("+") + 2 * self.padding
         button_height = self.font_height
@@ -41,7 +48,7 @@ class Chrome:
             bottom=self.padding + button_height,
         )
 
-    def get_tab_rect(self, i: int) -> Rect:
+    def _get_tab_rect(self, i: int) -> Rect:
         """Get rectangular boundary of a tab."""
         tabs_start = self.new_tab_button_rect.right + self.padding
         tab_width = (
@@ -52,6 +59,25 @@ class Chrome:
             top=0,
             right=tabs_start + tab_width * (i + 1),
             bottom=self.tabbar_bottom,
+        )
+
+    def _get_back_button_rect(self) -> Rect:
+        """Get rectangular boundary of the go-back button."""
+        button_width = self.font.measure("<") + 2 * self.padding
+        return Rect(
+            left=self.padding,
+            top=self.url_bar_top + self.padding,
+            right=self.padding + button_width,
+            bottom=self.url_bar_bottom - self.padding,
+        )
+
+    def _get_address_bar_rect(self) -> Rect:
+        """Get rectangular boundary of the address bar."""
+        return Rect(
+            left=self.back_button_rect.right + self.padding,
+            top=self.url_bar_top + self.padding,
+            right=WIDTH - self.padding,
+            bottom=self.url_bar_bottom - self.padding,
         )
 
     def paint(self) -> list[BaseDrawCommand]:
@@ -65,11 +91,11 @@ class Chrome:
                     rect=Rect(left=0, top=0, right=WIDTH, bottom=self.bottom),
                     color="white",
                 ),
-                # DrawLine(
-                #     rect=Rect(left=0, top=self.bottom, right=WIDTH, bottom=self.bottom),
-                #     color="black",
-                #     thickness=1,
-                # ),
+                DrawLine(
+                    rect=Rect(left=0, top=self.bottom, right=WIDTH, bottom=self.bottom),
+                    color="black",
+                    thickness=1,
+                ),
             ]
         )
 
@@ -89,7 +115,7 @@ class Chrome:
 
         # Tabs
         for i, tab in enumerate(self.browser.tabs):
-            tab_rect = self.get_tab_rect(i)
+            tab_rect = self._get_tab_rect(i)
             # Add left/right borders and tag name
             commands.extend(
                 [
@@ -150,6 +176,34 @@ class Chrome:
                     ]
                 )
 
+        # Go-back button
+        commands.extend(
+            [
+                DrawOutline(rect=self.back_button_rect, color="black", thickness=1),
+                DrawText(
+                    left=self.back_button_rect.left + self.padding,
+                    top=self.back_button_rect.top,
+                    text="<",
+                    font=self.font,
+                    color="black",
+                ),
+            ]
+        )
+
+        # Address bar
+        commands.extend(
+            [
+                DrawOutline(rect=self.address_bar_rect, color="black", thickness=1),
+                DrawText(
+                    left=self.address_bar_rect.left + self.padding,
+                    top=self.address_bar_rect.top,
+                    text=str(self.browser.active_tab.url),
+                    font=self.font,
+                    color="black",
+                ),
+            ]
+        )
+
         return commands
 
     def click(self, x: int, y: int) -> None:
@@ -157,6 +211,9 @@ class Chrome:
         if self.new_tab_button_rect.contains_point(x, y):
             # Create a new tab (with default URL)
             self.browser.new_tab(URL(DEFAULT_LINK))
+        elif self.back_button_rect.contains_point(x, y):
+            # Go back to the previous page
+            self.browser.active_tab.go_back()
         else:
             # Switch to the tab being clicked on
             for i, tab in enumerate(self.browser.tabs):
