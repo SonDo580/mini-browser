@@ -48,7 +48,7 @@ class LineLayout(BaseLayout):
 
         # Align all words along the baseline
         for text_layout in self.children:
-            text_layout.y = baseline - text_layout.font.metrics("ascent")
+            text_layout.set_y(baseline - text_layout.font.metrics("ascent"))
 
         # Compute line's height
         # = height of the tallest word multiplied with a factor to add space between lines

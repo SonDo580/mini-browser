@@ -25,7 +25,6 @@ class Chrome:
         self.font_height = self.font.metrics("linespace")
 
         self.padding = 5
-        self.tabbar_top = 0
         self.tabbar_bottom = self.font_height + 2 * self.padding
         self.new_tab_button_rect = self.get_new_tab_button_rect()
 
@@ -33,12 +32,13 @@ class Chrome:
 
     def get_new_tab_button_rect(self) -> Rect:
         """Get rectangular boundary of the add-tag button."""
-        new_tab_button_width = self.font.measure("+") + 2 * self.padding
+        button_width = self.font.measure("+") + 2 * self.padding
+        button_height = self.font_height
         return Rect(
-            left=0,
-            top=self.tabbar_top,
-            right=new_tab_button_width,
-            bottom=self.font_height + 2 * self.padding,
+            left=self.padding,
+            top=self.padding,
+            right=self.padding + button_width,
+            bottom=self.padding + button_height,
         )
 
     def get_tab_rect(self, i: int) -> Rect:
@@ -49,7 +49,7 @@ class Chrome:
         )  # X's width ~ digit's width
         return Rect(
             left=tabs_start + tab_width * i,
-            top=self.tabbar_top,
+            top=0,
             right=tabs_start + tab_width * (i + 1),
             bottom=self.tabbar_bottom,
         )
@@ -65,11 +65,11 @@ class Chrome:
                     rect=Rect(left=0, top=0, right=WIDTH, bottom=self.bottom),
                     color="white",
                 ),
-                DrawLine(
-                    rect=Rect(left=0, top=self.bottom, right=WIDTH, bottom=self.bottom),
-                    color="black",
-                    thickness=1,
-                ),
+                # DrawLine(
+                #     rect=Rect(left=0, top=self.bottom, right=WIDTH, bottom=self.bottom),
+                #     color="black",
+                #     thickness=1,
+                # ),
             ]
         )
 
@@ -79,7 +79,7 @@ class Chrome:
                 DrawOutline(rect=self.new_tab_button_rect, color="black", thickness=1),
                 DrawText(
                     left=self.new_tab_button_rect.left + self.padding,
-                    top=self.new_tab_button_rect.top + self.padding,
+                    top=self.new_tab_button_rect.top,
                     text="+",
                     font=self.font,
                     color="black",
