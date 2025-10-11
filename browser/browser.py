@@ -22,6 +22,7 @@ class Browser:
         self.window.bind("<Button-1>", self.handle_click)  # press left mouse button
         self.window.bind("<Key>", self.handle_key)  # capture all key presses
         self.window.bind("<Return>", self.handle_enter)  # press enter key
+        self.window.bind("<BackSpace>", self.handle_backspace)  # press backspace key
 
         # Init Chrome after creating Tk window since it needs to call get_font.
         # tkinter.font.Font() requires a default Tk root window to exist.
@@ -67,7 +68,12 @@ class Browser:
     def handle_key(self, e: tkinter.Event) -> None:
         char = e.char
 
-        if len(char) == 0 or not (0x20 < ord(char) < 0x7f):
+        # Skip non-character key (arrows, function keys, Shift, Ctrl, Alt, ...)
+        if len(char) == 0:
+            return
+        
+        # Accept printable ASCII characters except SPACE (32) and DEL (127)
+        if not 32 < ord(char) < 127:
             return
         
         self.chrome.keypress(char)
@@ -75,6 +81,10 @@ class Browser:
 
     def handle_enter(self, e: tkinter.Event) -> None:
         self.chrome.enter()
+        self.draw()
+
+    def handle_backspace(self, e: tkinter.Event) -> None:
+        self.chrome.backspace()
         self.draw()
 
     def draw(self) -> None:

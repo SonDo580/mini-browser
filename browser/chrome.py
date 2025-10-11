@@ -294,4 +294,11 @@ class Chrome:
             # Go to the new address
             self.browser.active_tab.load(URL(self.address_input))
             self.focused_component = None
+
+    def backspace(self) -> None:
+        """Handle pressing BackSpace."""
+        if self.focused_component == ChromeComponent.ADDRESS_BAR:
+            # Remove the last character from the address input
+            self.address_input = self.address_input[:-1]
+
             
