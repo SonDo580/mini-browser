@@ -79,3 +79,7 @@ class BaseLayout(abc.ABC):
 
     def __not_computed_message(self, field: str) -> str:
         return f"{field} has not been computed. Call layout() first."
+
+    def should_paint(self) -> bool:
+        """Whether to collect draw commands from current layout."""
+        return True

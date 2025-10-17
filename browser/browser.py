@@ -1,4 +1,5 @@
 import tkinter
+from enum import Enum
 
 from browser.constants import WIDTH, HEIGHT
 from browser.url import URL
@@ -6,10 +7,16 @@ from browser.chrome import Chrome
 from browser.tab import Tab
 
 
+class BrowserComponent(Enum):
+    CHROME = "chrome"
+    CONTENT = "content"
+
+
 class Browser:
     def __init__(self):
         self.tabs: list[Tab] = []
         self._active_tab: Tab | None = None
+        self.focused_component: BrowserComponent | None = None 
 
         self.window = tkinter.Tk()
         self.canvas = tkinter.Canvas(
@@ -58,9 +65,12 @@ class Browser:
     def handle_click(self, e: tkinter.Event) -> None:
         if e.y < self.chrome.bottom:
             # Click on the chrome area
+            self.focused_component = BrowserComponent.CHROME
             self.chrome.click(e.x, e.y)
         else:
             # Click on the tab content area
+            self.focused_component = BrowserComponent.CONTENT
+            self.chrome.blur()
             tab_y = e.y - self.chrome.bottom  # subtract the chrome size
             self.active_tab.click(e.x, tab_y)
         self.draw()
@@ -76,8 +86,12 @@ class Browser:
         if not 32 < ord(char) < 127:
             return
         
-        self.chrome.keypress(char)
-        self.draw()
+        if self.focused_component == BrowserComponent.CHROME:
+            self.chrome.keypress(char)
+            self.draw()
+        elif self.focused_component == BrowserComponent.CONTENT:
+            self.active_tab.keypress(char)
+            self.draw()
 
     def handle_enter(self, e: tkinter.Event) -> None:
         self.chrome.enter()

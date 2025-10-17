@@ -2,13 +2,14 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from browser.constants import BLOCK_ELEMENTS
+from browser.constants import BLOCK_ELEMENTS, INPUT_WIDTH_PX
 from browser.html_parser.nodes import Text, Element
-from browser.utils.font import get_font
+from browser.utils.common import get_font_from_css
 from browser.layout.base import BaseLayout, BaseDrawCommand, Rect
 from browser.layout.draw_commands import DrawRect
 from browser.layout.line_layout import LineLayout
 from browser.layout.text_layout import TextLayout
+from browser.layout.input_layout import InputLayout
 
 if TYPE_CHECKING:
     from browser.layout.document_layout import DocumentLayout
@@ -30,12 +31,12 @@ class BlockLayout(BaseLayout):
         previous: BlockLayout | None,
     ):
         super().__init__()
-        self.node = node
-        self.parent = parent
-        self.previous = previous
+        self.node: Text | Element = node
+        self.parent: DocumentLayout | BlockLayout = parent
+        self.previous: BlockLayout | None = previous
         self.children: list[BlockLayout] | list[LineLayout] = []
 
-        # Horizontal position for the next word in the current line
+        # Horizontal position for the next item in the current line
         # (only used if layout mode is INLINE)
         self.cursor_x: float = 0  # relative to the block's x
 
@@ -79,11 +80,11 @@ class BlockLayout(BaseLayout):
 
     def layout_mode(self) -> LayoutMode:
         """Decide layout mode for the current layout object."""
-        # The node is a Text node -> inline
+        # Text node -> inline
         if isinstance(self.node, Text):
             return LayoutMode.INLINE
 
-        # The node is not a Text node, has children that are block elements -> block
+        # Element node with any block-element child -> block
         if any(
             [
                 isinstance(child, Element) and child.tag in BLOCK_ELEMENTS
@@ -92,11 +93,12 @@ class BlockLayout(BaseLayout):
         ):
             return LayoutMode.BLOCK
 
-        # The node is not a Text node, has children but none of them are block elements -> inline
-        if self.node.children:
+        # Element node with children but none of them are block elements -> inline
+        # Special case: input element -> inline
+        if self.node.children or self.node.tag == "input":
             return LayoutMode.INLINE
 
-        # The node is not a Text node and has no children -> block
+        # Element node without children (except input) -> block
         return LayoutMode.BLOCK
 
     def recurse(self, node: Text | Element) -> None:
@@ -107,8 +109,11 @@ class BlockLayout(BaseLayout):
         elif isinstance(node, Element):
             if node.tag == "br":
                 self.new_line()
-            for child in node.children:
-                self.recurse(child)
+            elif node.tag in ["input", "button"]:
+                self.handle_input(node)
+            else:
+                for child in node.children:
+                    self.recurse(child)
 
     def new_line(self) -> None:
         """Start a new LineLayout."""
@@ -123,23 +128,10 @@ class BlockLayout(BaseLayout):
 
     def handle_word(self, node: Text, word: str) -> None:
         """
-        Create a TextLayout for a word and place it in the current LineLayout.
+        Create a TextLayout and place it in the current LineLayout.
         Start a new line if adding word causes overflow.
         """
-        # Extract CSS styles and convert to Tk format
-        font_weight = node.style["font-weight"]
-
-        font_style = node.style["font-style"]
-        if font_style == "normal":
-            font_style = "roman"
-        elif font_style == "oblique":
-            font_style = "italic"
-
-        font_size = int(
-            float(node.style["font-size"][:-2]) * 0.75
-        )  # CSS pixels -> Tk points
-
-        font = get_font(font_size, font_weight, font_style)
+        font = get_font_from_css(node)
         word_width = font.measure(word)
 
         # Start a new line if adding word causes overflow
@@ -148,16 +140,35 @@ class BlockLayout(BaseLayout):
 
         # Create a TextLayout and place it in the current line
         line_layout: LineLayout = self.children[-1]
-        previous_text_layout = (
-            line_layout.children[-1] if line_layout.children else None
-        )
+        previous_layout = line_layout.children[-1] if line_layout.children else None
         text_layout = TextLayout(
-            node, word, font, parent=line_layout, previous=previous_text_layout
+            node, word, font, parent=line_layout, previous=previous_layout
         )
         line_layout.children.append(text_layout)
 
-        # Update horizontal position for the next word
+        # Update horizontal position for the next item
         self.cursor_x += word_width + font.measure(" ")
+
+    def handle_input(self, node: Element) -> None:
+        """
+        Create an InputLayout and place it in the current LineLayout.
+        Start a new line if adding the input/button causes overflow.
+        """
+        font = get_font_from_css(node)
+        input_width = INPUT_WIDTH_PX
+
+        # Start a new line if adding input/button causes overflow
+        if self.cursor_x + input_width > self.width:
+            self.new_line()
+
+        # Create an InputLayout and place it in the current line
+        line_layout: LineLayout = self.children[-1]
+        previous_layout = line_layout.children[-1] if line_layout.children else None
+        text_layout = InputLayout(node, parent=line_layout, previous=previous_layout)
+        line_layout.children.append(text_layout)
+
+        # Update horizontal position for the next item
+        self.cursor_x += input_width + font.measure(" ")
 
     def paint(self) -> list[BaseDrawCommand]:
         """Return the drawing commands (display list) for current layout"""
@@ -173,3 +184,18 @@ class BlockLayout(BaseLayout):
             return [DrawRect(rect=rect, color=bg_color)]
 
         return []
+
+    # override
+    def should_paint(self) -> bool:
+        """Whether to collect draw commands from current layout."""
+        # Due to block siblings, sometimes an input or button element
+        # will create a BlockLayout (then an InputLayout inside)
+        # -> avoid painting the background twice in this case
+        return not (
+            isinstance(self.node, Element)
+            and self.node.tag
+            in [
+                "input",
+                "button",
+            ]
+        )

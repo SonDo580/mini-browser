@@ -8,6 +8,7 @@ from browser.layout.draw_commands import DrawText
 
 if TYPE_CHECKING:
     from browser.layout.line_layout import LineLayout
+    from browser.layout.input_layout import InputLayout
 
 
 class TextLayout(BaseLayout):
@@ -19,12 +20,12 @@ class TextLayout(BaseLayout):
         word: str,
         font: tkinter.font.Font,
         parent: LineLayout,
-        previous: TextLayout | None,
+        previous: TextLayout | InputLayout | None,
     ):
-        self.node = node
-        self.parent = parent
-        self.previous = previous
-        self.children = []  # always empty since text layout is a leaf
+        self.node: Text = node
+        self.parent: LineLayout = parent
+        self.previous: TextLayout | InputLayout | None = previous
+        self.children = []  # always empty
 
         self.word = word
         self.font = font
@@ -42,7 +43,7 @@ class TextLayout(BaseLayout):
 
         self._height = self.font.metrics("linespace")
 
-        # The y position of a word depends on the other words in the same line,
+        # The y position of a word depends on the other items in the same line,
         # so we’ll compute that inside LineLayout’s 'layout' method.
 
     def paint(self) -> list[BaseDrawCommand]:
@@ -62,6 +63,6 @@ class TextLayout(BaseLayout):
     def set_y(self, value: float) -> None:
         """
         Set the y coordinate for current word.
-        Called by LineLayout to align words along the baseline.
+        Called by LineLayout to align items along the baseline.
         """
         self._y = value

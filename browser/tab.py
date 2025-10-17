@@ -1,4 +1,5 @@
 import tkinter
+import urllib.parse
 
 from browser.constants import VSTEP, SCROLL_STEP
 from browser.url import URL
@@ -17,12 +18,14 @@ class Tab:
     def __init__(self, tab_height: float):
         self._url: URL | None = None
         self.tab_height = tab_height  # visible content's height
-        self.history: list[URL] = [] # track visited pages
+        self.history: list[URL] = []  # track visited pages
 
         self._document: DocumentLayout | None = None
         self.scroll: float = 0
         self.display_list: list[BaseDrawCommand] = []
- 
+
+        self.focused_element: Element | None = None
+
     @property
     def document(self) -> DocumentLayout:
         """Return the Document layout."""
@@ -37,26 +40,22 @@ class Tab:
             raise Exception("URL manager has not been initialized. Call load() first.")
         return self._url
 
-    def load(self, url: URL) -> None:
+    def load(self, url: URL, payload: str | None = None) -> None:
         """Fetch and display content from the given URL."""
         self._url = url
-        self.history.append(url) # record visited page
+        self.history.append(url)  # record visited page
 
-        # ===== HTML =====
-        # ================
         # Fetch and parse HTML
-        body = url.request()
-        tree = HTMLParser(body).parse()
+        body = url.request(payload)
+        self.html_tree = HTMLParser(body).parse()
 
-        # ==== CSS =====
-        # ==============
         # Collect default CSS rules
         css_rules = DEFAULT_STYLE_SHEET.copy()
 
         # Download and parse external stylesheets
         links = [
             node.attributes["href"]
-            for node in tree_to_list(tree, nodes=[])
+            for node in tree_to_list(self.html_tree, nodes=[])
             if isinstance(node, Element)
             and node.tag == "link"
             and node.attributes.get("rel") == "stylesheet"
@@ -73,15 +72,18 @@ class Tab:
         # Apply cascade sorting:
         # - Sort rules by priority (specificity). Preserve source order if there's a tie.
         # - Effect: later rules override earlier ones for the same property.
-        sorted_rules = sorted(css_rules, key=cascade_priority)
+        self.sorted_css_rules = sorted(css_rules, key=cascade_priority)
 
+        # Apply style and layout the document
+        self.render()
+
+    def render(self):
+        """Apply style and layout the document."""
         # Apply style rules to the HTML tree
-        style(tree, sorted_rules)
+        style(self.html_tree, self.sorted_css_rules)
 
-        # ===== Layout =====
-        # ==================
         # Build layout tree
-        self._document = DocumentLayout(tree)
+        self._document = DocumentLayout(self.html_tree)
         self.document.layout()
 
         # Reset display list and scroll offset
@@ -120,6 +122,11 @@ class Tab:
 
     def click(self, x: int, tab_y: int) -> None:
         """Handle click events inside the tab content area."""
+        # Clear focus
+        if self.focused_element:
+            self.focused_element.is_focused = False
+            self.focused_element = None
+
         # Convert screen coordinates to page coordinates
         y = tab_y + self.scroll
 
@@ -138,24 +145,67 @@ class Tab:
         # (Real browsers have to compute stacking contexts to decide)
         clicked_node = layouts[-1].node
 
-        # Climb back up the HTML tree to find a link element
-        current_node = clicked_node
-        while current_node:
-            if (
-                isinstance(current_node, Element)
-                and current_node.tag == "a"
-                and "href" in current_node.attributes
-            ):
+        # Climb back up the HTML tree
+        element = (
+            clicked_node if isinstance(clicked_node, Element) else clicked_node.parent
+        )
+        while element:
+            if element.tag == "a" and "href" in element.attributes:
                 # Navigate to the linked page
-                linked_url = self.url.resolve(current_node.attributes["href"])
-                return self.load(linked_url)
+                linked_url = self.url.resolve(element.attributes["href"])
+                self.load(linked_url)  # reload
+                return
+            elif element.tag == "input":
+                # Focus on the input and clear existing value
+                self.focused_element = element
+                element.is_focused = True
+                element.attributes["value"] = ""
+                self.render()  # re-render
+                return
+            elif element.tag == "button":
+                # Submit the form that contains the button
+                while element:
+                    if element.tag == "form" and "action" in element.attributes:
+                        self.submit_form(element)
+                        break
+                    element = element.parent
+                return
 
-            current_node = current_node.parent
+            element = element.parent
+
+    def keypress(self, char: str) -> None:
+        """Handle keypress event inside tab content area."""
+        if self.focused_element and self.focused_element.tag == "input":
+            # Edit current input value
+            self.focused_element.attributes["value"] += char
+            self.render()  # re-render
 
     def go_back(self) -> None:
         """Go back to the previous page."""
-        # Pop the urls before calling 'load', since 'load' adds to history 
+        # Pop the urls before calling 'load', since 'load' adds to history
         if len(self.history) >= 2:
-            self.history.pop() 
-            previous_url = self.history.pop() 
+            self.history.pop()
+            previous_url = self.history.pop()
             self.load(previous_url)
+
+    def submit_form(self, form: Element) -> None:
+        """Submit the form."""
+        # Find all input elements in the form
+        inputs = [
+            node
+            for node in tree_to_list(form, nodes=[])
+            if isinstance(node, Element)
+            and node.tag == "input"
+            and "name" in node.attributes
+        ]
+
+        # Build request body
+        form_data = {
+            input.attributes["name"]: input.attributes.get("value", "")
+            for input in inputs
+        }
+        body = urllib.parse.urlencode(form_data)
+
+        # Make a POST request
+        url = self.url.resolve(form.attributes["action"])
+        self.load(url, body)

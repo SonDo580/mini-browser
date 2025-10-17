@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from browser.html_parser.nodes import Text, Element
 from browser.layout.base import BaseLayout, BaseDrawCommand
 from browser.layout.text_layout import TextLayout
+from browser.layout.input_layout import InputLayout
 
 if TYPE_CHECKING:
     from browser.layout.block_layout import BlockLayout
@@ -15,10 +16,10 @@ class LineLayout(BaseLayout):
     def __init__(
         self, node: Text | Element, parent: BlockLayout, previous: LineLayout | None
     ):
-        self.node = node  # unused
-        self.parent = parent
-        self.previous = previous
-        self.children: list[TextLayout] = []
+        self.node: Text | Element = node  # unused
+        self.parent: BlockLayout = parent
+        self.previous: LineLayout | None = previous
+        self.children: list[TextLayout | InputLayout] = []
 
     def layout(self):
         """Compute display info and recursively layout children."""
@@ -36,24 +37,28 @@ class LineLayout(BaseLayout):
         else:
             self._y = self.parent.y
 
-        # Layout each word in the line
-        for text_layout in self.children:
-            text_layout.layout()
+        if not self.children:
+            self._height = 0
+            return
+
+        # Layout each child in the line
+        for child_layout in self.children:
+            child_layout.layout()            
 
         # Calculate baseline for current line
         max_ascent = max(
-            [text_layout.font.metrics("ascent") for text_layout in self.children]
+            [child_layout.font.metrics("ascent") for child_layout in self.children]
         )
         baseline = self.y + max_ascent * 1.25
 
-        # Align all words along the baseline
-        for text_layout in self.children:
-            text_layout.set_y(baseline - text_layout.font.metrics("ascent"))
+        # Align children along the baseline
+        for child_layout in self.children:
+            child_layout.set_y(baseline - child_layout.font.metrics("ascent"))
 
         # Compute line's height
-        # = height of the tallest word multiplied with a factor to add space between lines
+        # = height of the tallest child multiplied with a factor to add space between lines
         max_descent = max(
-            [text_layout.font.metrics("descent") for text_layout in self.children]
+            [child_layout.font.metrics("descent") for child_layout in self.children]
         )
         self._height = (max_ascent + max_descent) * 1.25
 

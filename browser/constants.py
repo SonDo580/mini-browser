@@ -3,6 +3,7 @@
 WIDTH, HEIGHT = 800, 600 
 HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
+INPUT_WIDTH_PX = 200
 
 # ***** HTML elements *****
 # *************************

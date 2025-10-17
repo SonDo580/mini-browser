@@ -38,7 +38,7 @@ class URL:
             # (ex) self.host = "example.com"
             # (ex) self.port = 8080
 
-    def request(self) -> str:
+    def request(self, payload: str | None = None) -> str:
         """Send HTTP request and return response body"""
 
         # Establish TCP connection
@@ -52,10 +52,22 @@ class URL:
             ctx = ssl.create_default_context()
             s = ctx.wrap_socket(s, server_hostname=self.host)
 
-        # Send HTTP GET request
-        request = f"GET {self.path} HTTP/1.0\r\n"
-        request += f"Host: {self.host}\r\n"
-        request += "\r\n"
+        # Send HTTP request
+        method = "POST" if payload is not None else "GET"
+        lines: list[str] = [
+            f"{method} {self.path} HTTP/1.0",
+            f"Host: {self.host}",
+        ]
+        if payload is not None:
+            content_length = len(payload.encode("utf8"))
+            lines.append(f"Content-Length: {content_length}")
+            lines.append("Content-Type: application/x-www-form-urlencoded")
+        lines.append("")
+
+        request = "\r\n".join(lines) + "\r\n"
+        if payload is not None:
+            request += payload
+
         s.send(request.encode("utf8"))
 
         # Parse response status line and headers

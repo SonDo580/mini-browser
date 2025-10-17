@@ -23,6 +23,7 @@ class Element:
         self.children: list[Element | Text] = []
         self.parent = parent
         self.style: dict[str, str] = {}
+        self.is_focused: bool = False
 
     def __repr__(self):
         return f"<{self.tag}>"

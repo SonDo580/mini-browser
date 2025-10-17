@@ -8,6 +8,7 @@ def paint_tree(layout: BaseLayout, display_list: list[BaseDrawCommand]):
     """
     # [!] Nested layouts should be painted on top of parent layout (z-axis)
     #     -> call 'paint' on current layout before recursing into subtree
-    display_list.extend(layout.paint())
+    if layout.should_paint():
+        display_list.extend(layout.paint())
     for child_layout in layout.children:
         paint_tree(child_layout, display_list)
