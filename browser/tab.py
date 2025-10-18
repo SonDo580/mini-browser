@@ -178,8 +178,16 @@ class Tab:
     def keypress(self, char: str) -> None:
         """Handle keypress event inside tab content area."""
         if self.focused_element and self.focused_element.tag == "input":
-            # Edit current input value
+            # Append character to input
             self.focused_element.attributes["value"] += char
+            self.render()  # re-render
+
+    def backspace(self) -> None:
+        """Handle pressing BackSpace."""
+        if self.focused_element and self.focused_element.tag == "input":
+            # Remove the last character from input
+            new_value = self.focused_element.attributes["value"][:-1]
+            self.focused_element.attributes["value"] = new_value
             self.render()  # re-render
 
     def go_back(self) -> None:

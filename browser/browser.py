@@ -16,7 +16,7 @@ class Browser:
     def __init__(self):
         self.tabs: list[Tab] = []
         self._active_tab: Tab | None = None
-        self.focused_component: BrowserComponent | None = None 
+        self.focused_component: BrowserComponent | None = None
 
         self.window = tkinter.Tk()
         self.canvas = tkinter.Canvas(
@@ -40,7 +40,7 @@ class Browser:
         if self._active_tab is None:
             raise Exception("No active tab.")
         return self._active_tab
-    
+
     def set_active_tab(self, tab: Tab) -> None:
         """Used by the Chrome when users select a tab."""
         self._active_tab = tab
@@ -81,11 +81,11 @@ class Browser:
         # Skip non-character key (arrows, function keys, Shift, Ctrl, Alt, ...)
         if len(char) == 0:
             return
-        
-        # Accept printable ASCII characters except SPACE (32) and DEL (127)
-        if not 32 < ord(char) < 127:
+
+        # Accept printable ASCII characters except DEL (127)
+        if not 32 <= ord(char) < 127:
             return
-        
+
         if self.focused_component == BrowserComponent.CHROME:
             self.chrome.keypress(char)
             self.draw()
@@ -98,8 +98,12 @@ class Browser:
         self.draw()
 
     def handle_backspace(self, e: tkinter.Event) -> None:
-        self.chrome.backspace()
-        self.draw()
+        if self.focused_component == BrowserComponent.CHROME:
+            self.chrome.backspace()
+            self.draw()
+        elif self.focused_component == BrowserComponent.CONTENT:
+            self.active_tab.backspace()
+            self.draw()
 
     def draw(self) -> None:
         self.canvas.delete("all")

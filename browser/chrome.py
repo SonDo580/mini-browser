@@ -285,7 +285,7 @@ class Chrome:
     def keypress(self, char: str) -> None:
         """Handle keypress event."""
         if self.focused_component == ChromeComponent.ADDRESS_BAR:
-            # Edit the address
+            # Append character to address input
             self.address_input += char
 
     def enter(self) -> None:
@@ -298,7 +298,7 @@ class Chrome:
     def backspace(self) -> None:
         """Handle pressing BackSpace."""
         if self.focused_component == ChromeComponent.ADDRESS_BAR:
-            # Remove the last character from the address input
+            # Remove the last character from address input
             self.address_input = self.address_input[:-1]
 
     def blur(self) -> None:
