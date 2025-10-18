@@ -52,7 +52,7 @@ class URL:
             ctx = ssl.create_default_context()
             s = ctx.wrap_socket(s, server_hostname=self.host)
 
-        # Send HTTP request
+        # Prepare HTTP request
         method = "POST" if payload is not None else "GET"
         lines: list[str] = [
             f"{method} {self.path} HTTP/1.0",
@@ -68,14 +68,16 @@ class URL:
         if payload is not None:
             request += payload
 
+        # Send HTTP request
         s.send(request.encode("utf8"))
 
-        # Parse response status line and headers
+        # Parse response status line
         response = s.makefile("r", encoding="utf8", newline="\r\n")
         status_line = response.readline()
         version, status, explanation = status_line.split(" ", 2)
 
-        response_headers = {}
+        # Parse response headers
+        response_headers: dict[str, str] = {}
         while True:
             line = response.readline()
             if line == "\r\n":

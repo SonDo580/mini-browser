@@ -8,9 +8,20 @@ Develop a simple web browser
 
 ## Usage
 
+1. **Browser usage:**
+
 ```bash
+# Run the browser with an optional `url` argument
+# (default url: "https://browser.engineering/")
 python -m browser <url>
 ```
 
-- Run the browser with an optional `url` argument.
-- If no URL is provided, it will open the default page "https://browser.engineering/".
+2. **Test-Server usage:**
+
+```bash
+# Start the test server
+python -m server
+
+# Make request from browser
+python -m browser http://localhost:8000
+```
