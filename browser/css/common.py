@@ -1,4 +1,4 @@
-from browser.html_parser.nodes import Text, Element
+from browser.html.nodes import Text, Element
 from browser.css.css_parser import CSSParser, CSSRule
 from browser.css.default import INHERITED_PROPERTIES
 

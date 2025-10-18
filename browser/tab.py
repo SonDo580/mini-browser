@@ -3,8 +3,8 @@ import urllib.parse
 
 from browser.constants import VSTEP, SCROLL_STEP
 from browser.url import URL
-from browser.html_parser.html_parser import HTMLParser
-from browser.html_parser.nodes import Element
+from browser.html.html_parser import HTMLParser
+from browser.html.nodes import Element
 from browser.css.common import style, cascade_priority
 from browser.css.default import DEFAULT_STYLE_SHEET
 from browser.css.css_parser import CSSParser

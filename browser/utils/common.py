@@ -1,6 +1,6 @@
 import tkinter.font
 
-from browser.html_parser.nodes import Element
+from browser.html.nodes import Element
 from browser.utils.font import get_font
 
 

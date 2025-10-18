@@ -2,7 +2,7 @@ from __future__ import annotations
 import tkinter.font
 from typing import TYPE_CHECKING
 
-from browser.html_parser.nodes import Text
+from browser.html.nodes import Text
 from browser.layout.base import BaseLayout, BaseDrawCommand
 from browser.layout.draw_commands import DrawText
 

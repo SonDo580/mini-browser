@@ -1,5 +1,5 @@
 from browser.constants import SELF_CLOSING_TAGS, HEAD_TAGS
-from browser.html_parser.nodes import Element, Text
+from browser.html.nodes import Element, Text
 
 
 class HTMLParser:

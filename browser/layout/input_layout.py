@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from browser.constants import INPUT_WIDTH_PX
-from browser.html_parser.nodes import Text, Element
+from browser.html.nodes import Text, Element
 from browser.layout.base import BaseLayout, BaseDrawCommand, Rect
 from browser.layout.draw_commands import DrawRect, DrawText, DrawLine
 from browser.utils.common import get_font_from_css

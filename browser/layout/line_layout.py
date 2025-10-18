@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from browser.html_parser.nodes import Text, Element
+from browser.html.nodes import Text, Element
 from browser.layout.base import BaseLayout, BaseDrawCommand
 from browser.layout.text_layout import TextLayout
 from browser.layout.input_layout import InputLayout

@@ -3,7 +3,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from browser.constants import BLOCK_ELEMENTS, INPUT_WIDTH_PX
-from browser.html_parser.nodes import Text, Element
+from browser.html.nodes import Text, Element
 from browser.utils.common import get_font_from_css
 from browser.layout.base import BaseLayout, BaseDrawCommand, Rect
 from browser.layout.draw_commands import DrawRect

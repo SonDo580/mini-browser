@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from browser.html_parser.nodes import Text, Element
+from browser.html.nodes import Text, Element
 
 
 class TagSelector:

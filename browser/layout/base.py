@@ -2,7 +2,7 @@ from __future__ import annotations
 import abc
 import tkinter
 
-from browser.html_parser.nodes import Text, Element
+from browser.html.nodes import Text, Element
 
 
 class Rect:
