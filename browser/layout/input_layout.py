@@ -53,8 +53,8 @@ class InputLayout(BaseLayout):
         bg_color = self.node.style.get("background-color", "transparent")
         if bg_color != "transparent":
             rect = Rect(
-                top=self.x,
-                left=self.y,
+                left=self.x,
+                top=self.y,
                 right=self.x + self.width,
                 bottom=self.y + self.height,
             )

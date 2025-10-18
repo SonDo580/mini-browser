@@ -77,7 +77,7 @@ class Tab:
         # Apply style and layout the document
         self.render()
 
-    def render(self):
+    def render(self) -> None:
         """Apply style and layout the document."""
         # Apply style rules to the HTML tree
         style(self.html_tree, self.sorted_css_rules)
@@ -139,6 +139,8 @@ class Tab:
             and layout.y <= y <= layout.y + layout.height
         ]
         if not layouts:
+            # Re-render since we might have unfocused an input element
+            self.render()
             return
 
         # Find the most specific node that was clicked
@@ -153,25 +155,25 @@ class Tab:
             if element.tag == "a" and "href" in element.attributes:
                 # Navigate to the linked page
                 linked_url = self.url.resolve(element.attributes["href"])
-                self.load(linked_url)  # reload
-                return
+                return self.load(linked_url)  # reload
             elif element.tag == "input":
                 # Focus on the input and clear existing value
                 self.focused_element = element
                 element.is_focused = True
                 element.attributes["value"] = ""
-                self.render()  # re-render
-                return
+                return self.render()  # re-render
             elif element.tag == "button":
                 # Submit the form that contains the button
                 while element:
                     if element.tag == "form" and "action" in element.attributes:
-                        self.submit_form(element)
-                        break
+                        return self.submit_form(element)
                     element = element.parent
-                return
+                break
 
             element = element.parent
+
+        # Re-render since we might have unfocused an input element
+        self.render()
 
     def keypress(self, char: str) -> None:
         """Handle keypress event inside tab content area."""

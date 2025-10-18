@@ -301,4 +301,6 @@ class Chrome:
             # Remove the last character from the address input
             self.address_input = self.address_input[:-1]
 
-            
+    def blur(self) -> None:
+        """Unfocus the chrome."""
+        self.focused_component = None

@@ -164,8 +164,8 @@ class BlockLayout(BaseLayout):
         # Create an InputLayout and place it in the current line
         line_layout: LineLayout = self.children[-1]
         previous_layout = line_layout.children[-1] if line_layout.children else None
-        text_layout = InputLayout(node, parent=line_layout, previous=previous_layout)
-        line_layout.children.append(text_layout)
+        input_layout = InputLayout(node, parent=line_layout, previous=previous_layout)
+        line_layout.children.append(input_layout)
 
         # Update horizontal position for the next item
         self.cursor_x += input_width + font.measure(" ")
