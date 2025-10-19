@@ -1,10 +1,11 @@
 import tkinter
 import urllib.parse
+import dukpy
 
 from browser.constants import VSTEP, SCROLL_STEP
 from browser.url import URL
 from browser.html.html_parser import HTMLParser
-from browser.html.nodes import Element
+from browser.html.nodes import Element, Text
 from browser.css.common import style, cascade_priority
 from browser.css.default import DEFAULT_STYLE_SHEET
 from browser.css.css_parser import CSSParser
@@ -12,6 +13,7 @@ from browser.layout.document_layout import DocumentLayout
 from browser.layout.base import BaseDrawCommand, BaseLayout
 from browser.layout.common import paint_tree
 from browser.utils.common import tree_to_list
+from browser.js.js_context import JSContext
 
 
 class Tab:
@@ -45,9 +47,16 @@ class Tab:
         self._url = url
         self.history.append(url)  # record visited page
 
+        # ===== HTML =====
+        # ================
+
         # Fetch and parse HTML
-        body = url.request(payload)
-        self.html_tree = HTMLParser(body).parse()
+        html_body = url.request(payload)
+        self.html_tree = HTMLParser(html_body).parse()
+        self.nodes: list[Element | Text] = tree_to_list(self.html_tree, nodes=[])
+
+        # ===== CSS =====
+        # ===============
 
         # Collect default CSS rules
         css_rules = DEFAULT_STYLE_SHEET.copy()
@@ -55,7 +64,7 @@ class Tab:
         # Download and parse external stylesheets
         links = [
             node.attributes["href"]
-            for node in tree_to_list(self.html_tree, nodes=[])
+            for node in self.nodes
             if isinstance(node, Element)
             and node.tag == "link"
             and node.attributes.get("rel") == "stylesheet"
@@ -64,8 +73,8 @@ class Tab:
         for link in links:
             style_url = url.resolve(link)
             try:
-                body = style_url.request()
-                css_rules.extend(CSSParser(body).parse())
+                css_body = style_url.request()
+                css_rules.extend(CSSParser(css_body).parse())
             except:
                 continue  # Ignore failed style sheets
 
@@ -74,7 +83,27 @@ class Tab:
         # - Effect: later rules override earlier ones for the same property.
         self.sorted_css_rules = sorted(css_rules, key=cascade_priority)
 
-        # Apply style and layout the document
+        # ===== JavaScript =====
+        # ======================
+        self.js_context = JSContext(self)
+
+        # Download and run all scripts
+        script_sources = [
+            node.attributes["src"]
+            for node in self.nodes
+            if isinstance(node, Element)
+            and node.tag == "script"
+            and "src" in node.attributes
+        ]
+        for script_src in script_sources:
+            script_url = url.resolve(script_src)
+            try:
+                js_body = script_url.request()
+            except:
+                continue  # Ignored failed requests
+            self.js_context.run(script_src, code=js_body)
+
+        # ===== Rendering =====
         self.render()
 
     def render(self) -> None:
@@ -153,16 +182,25 @@ class Tab:
         )
         while element:
             if element.tag == "a" and "href" in element.attributes:
+                if self.js_context.dispatch_event("click", element):
+                    return  # e.preventDefault() is called in JS
+
                 # Navigate to the linked page
                 linked_url = self.url.resolve(element.attributes["href"])
                 return self.load(linked_url)  # reload
             elif element.tag == "input":
+                if self.js_context.dispatch_event("click", element):
+                    return  # e.preventDefault() is called in JS
+
                 # Focus on the input and clear existing value
                 self.focused_element = element
                 element.is_focused = True
                 element.attributes["value"] = ""
                 return self.render()  # re-render
             elif element.tag == "button":
+                if self.js_context.dispatch_event("click", element):
+                    return  # e.preventDefault() is called in JS
+
                 # Submit the form that contains the button
                 while element:
                     if element.tag == "form" and "action" in element.attributes:
@@ -178,6 +216,9 @@ class Tab:
     def keypress(self, char: str) -> None:
         """Handle keypress event inside tab content area."""
         if self.focused_element and self.focused_element.tag == "input":
+            if self.js_context.dispatch_event("keydown", self.focused_element):
+                return  # e.preventDefault() is called in JS
+
             # Append character to input
             self.focused_element.attributes["value"] += char
             self.render()  # re-render
@@ -185,6 +226,9 @@ class Tab:
     def backspace(self) -> None:
         """Handle pressing BackSpace."""
         if self.focused_element and self.focused_element.tag == "input":
+            if self.js_context.dispatch_event("keydown", self.focused_element):
+                return  # e.preventDefault() is called in JS
+
             # Remove the last character from input
             new_value = self.focused_element.attributes["value"][:-1]
             self.focused_element.attributes["value"] = new_value
@@ -200,6 +244,9 @@ class Tab:
 
     def submit_form(self, form: Element) -> None:
         """Submit the form."""
+        if self.js_context.dispatch_event("submit", form):
+            return  # e.preventDefault() is called in JS
+
         # Find all input elements in the form
         inputs = [
             node

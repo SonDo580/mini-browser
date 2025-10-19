@@ -29,7 +29,9 @@ def handle_connection(connection: socket.socket) -> None:
         request_body = request.read(content_length).decode("utf8")
 
     # Delegate to application logic to handle request
+    print(f"{method} {url_path}")
     status, response_body = handle_request(method, url_path, request_headers, request_body)
+    print(status)
 
     # Prepare HTTP response
     response_content_length = len(response_body.encode("utf8"))

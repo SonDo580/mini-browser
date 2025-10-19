@@ -97,7 +97,7 @@ class CSSParser:
 
         return prop_val_pairs
 
-    def __parse_selector(self) -> TagSelector | DescendantSelector:
+    def parse_selector(self) -> TagSelector | DescendantSelector:
         """Parse a selector
         - Single tag: 'p'
         - Descendant: 'div p'
@@ -123,7 +123,7 @@ class CSSParser:
         while self.i < len(self.source):
             try:
                 self.__skip_whitespace()
-                selector = self.__parse_selector()
+                selector = self.parse_selector()
                 self.__consume("{")
                 self.__skip_whitespace()
                 body = self.parse_body()
