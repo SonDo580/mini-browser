@@ -3,6 +3,12 @@ import ssl
 import socket
 
 
+# Cookie jar:
+# - Map sites to cookies
+# - Global, not limited to a particular tab
+COOKIE_JAR: dict[str, str] = {}
+
+
 class URL:
     def __init__(self, url: str):
         # Example: "https://example.com:8080/blog/page.html"
@@ -58,10 +64,15 @@ class URL:
             f"{method} {self.path} HTTP/1.0",
             f"Host: {self.host}",
         ]
+
         if payload is not None:
             content_length = len(payload.encode("utf8"))
             lines.append(f"Content-Length: {content_length}")
             lines.append("Content-Type: application/x-www-form-urlencoded")
+
+        if self.host in COOKIE_JAR:
+            lines.append(f"Cookie: {COOKIE_JAR[self.host]}\r\n")
+
         lines.append("")
 
         request = "\r\n".join(lines) + "\r\n"
@@ -88,6 +99,10 @@ class URL:
         # Reject chunked or compressed responses
         assert "transfer-encoding" not in response_headers
         assert "content-encoding" not in response_headers
+
+        if "set-cookie" in response_headers:
+            # Simplification: only handle single cookie
+            COOKIE_JAR[self.host] = response_headers["set-cookie"]
 
         # Return response body and close connection
         content = response.read()

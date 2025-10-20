@@ -1,6 +1,6 @@
 import socket
 
-from server.connection import handle_connection
+from server_test.connection import handle_connection
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import urllib.parse
+import random
 
 
 def form_decode(url_encoded_body: str) -> dict[str, str]:
@@ -14,3 +15,8 @@ def form_decode(url_encoded_body: str) -> dict[str, str]:
         params[name] = value
 
     return params
+
+
+def generate_token() -> str:
+    """This is not a cryptographically secure token."""
+    return str(random.random())

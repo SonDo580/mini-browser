@@ -1,7 +1,12 @@
 import socket
 import io
+from typing import Any
 
-from server.app import handle_request
+from server_test.app import handle_request
+from server_test.utils import generate_token
+
+# In-memory "database" of sessions
+SESSIONS: dict[str, dict[str, Any]] = {}
 
 
 def handle_connection(connection: socket.socket) -> None:
@@ -22,15 +27,27 @@ def handle_connection(connection: socket.socket) -> None:
         header, value = line.split(":", 1)
         request_headers[header.casefold()] = value.strip()
 
+    # Extract token cookie, or generate a new one for new visitors
+    if "cookie" in request_headers:
+        # Simplification: assume that only token cookie exists
+        token = request_headers["cookie"][len("token=") :]
+    else:
+        token = generate_token()
+
     # Read request body if present
     request_body: str | None = None
     if "content-length" in request_headers:
         content_length = int(request_headers["content-length"])
         request_body = request.read(content_length).decode("utf8")
 
+    # Create or retrieve an existing session
+    session = SESSIONS.setdefault(token, {})
+
     # Delegate to application logic to handle request
     print(f"{method} {url_path}")
-    status, response_body = handle_request(method, url_path, request_headers, request_body)
+    status, response_body = handle_request(
+        session, method, url_path, request_headers, request_body
+    )
     print(status)
 
     # Prepare HTTP response
@@ -38,8 +55,11 @@ def handle_connection(connection: socket.socket) -> None:
     lines: list[str] = [
         f"HTTP/1.0 {status}",
         f"Content-Length: {response_content_length}",
-        "",
     ]
+    if "cookie" not in request_headers:
+        # Set token cookie for new visitors
+        lines.append(f"Set-Cookie: token={token}")
+    lines.append("")
     response = "\r\n".join(lines) + "\r\n"
     response += response_body
 

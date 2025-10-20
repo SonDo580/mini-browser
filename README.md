@@ -33,7 +33,7 @@ python -m browser <url>
 
 ```bash
 # Start the test server
-python -m server
+python -m server_test
 
 # Make request from browser
 python -m browser http://localhost:8000
