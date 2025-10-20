@@ -37,6 +37,9 @@ class JSContext:
         self.interpreter.export_function("querySelectorAll", self.__query_selector_all)
         self.interpreter.export_function("getAttribute", self.__get_attribute)
         self.interpreter.export_function("innerHTML_set", self.__set_inner_html)
+        self.interpreter.export_function(
+            "XMLHttpRequest_send", self.__xml_http_request_send
+        )
 
         # Execute JS runtime code before any user code
         self.interpreter.evaljs(RUNTIME_JS)
@@ -108,3 +111,9 @@ class JSContext:
 
         # Re-render the page
         self.tab.render()
+
+    def __xml_http_request_send(self, method: str, url: str, body: str) -> str:
+        """Send an XMLHttpRequest. Return the response body."""
+        full_url = self.tab.url.resolve(url)
+        response_body = full_url.request(body)
+        return response_body
