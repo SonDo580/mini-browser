@@ -1,7 +1,8 @@
 import os
 from typing import Any
+import html
 
-from server_test.utils import form_decode
+from server_test.utils import form_decode, generate_token
 
 # Note that the "authentication system" is very insecure.
 # It's only intended for testing our browser.
@@ -89,38 +90,46 @@ def do_login(session: dict[str, Any], params: dict[str, str]) -> tuple[str, str]
 
 def show_guestbook(session: dict[str, Any]) -> str:
     """Display the guest book and a form to add new entries."""
-    html = """
+    output = """
 <!DOCTYPE html>
 <head>
     <link rel="stylesheet" href="static/test.css">
-    <script src="/static/test.js"></script>
 </head>
 """
 
     # Ask user to login
     if "user" not in session:
-        html += """<a href=/login>Sign in to write in the guest book</a>"""
-        return html
+        output += """<a href=/login>Sign in to write in the guest book</a>"""
+        return output
 
     # Greeting
-    html += f"""<h1>Hello, {session["user"]}</h1>"""
+    output += f"""<h1>Hello, {session["user"]}</h1>"""
 
-    # Form to add new guest
-    html += """
+    # Form to add new guest (with a nonce to mitigate CSRF attacks)
+    nonce = generate_token()
+    session["nonce"] = nonce
+    output += f"""
 <form action=add method=post>
+    <input name=nonce type=hidden value={nonce}>
     <p><input name=guest></p>
     <p><button>Sign the book!</button></p>
 </form>
 """
 
     # Show warning when input value is too long
-    html += """<strong></strong>"""
+    output += """<strong></strong>"""
 
     # Display all entries
     for comment, person in ENTRIES:
-        html += f"<p>{comment} - <i>by {person}</i></p>"
+        output += f"""<p>{html.escape(comment)}
+<i>by {html.escape(person)}</i></p>"""
 
-    return html
+    output += """<script src="/static/test.js"></script>"""
+
+    # Test Content Security Policy
+    output += "<script src=https://example.com/evil.js></script>"
+
+    return output
 
 
 def add_entry(session: dict[str, Any], params: dict[str, str]) -> None:
@@ -129,14 +138,24 @@ def add_entry(session: dict[str, Any], params: dict[str, str]) -> None:
     if "user" not in session:
         return
 
+    # Verify the nonce (mitigate CSRF attacks)
+    if (
+        "nonce" not in session
+        or "nonce" not in params
+        or session["nonce"] != params["nonce"]
+    ):
+        return
+
     if "guest" in params and len(params["guest"]) <= 50:
         ENTRIES.append((params["guest"], session["user"]))
 
 
 def not_found(url_path: str, method: str) -> tuple[str, str]:
     """Return Not-Found status and page."""
-    html = f"""
+    return (
+        "404 Not Found",
+        f"""
 <!DOCTYPE html>
 <h1>{method} {url_path} not found!</h1>
-"""
-    return "404 Not Found", html
+""",
+    )

@@ -19,4 +19,4 @@ def form_decode(url_encoded_body: str) -> dict[str, str]:
 
 def generate_token() -> str:
     """This is not a cryptographically secure token."""
-    return str(random.random())
+    return str(random.random())[2:]

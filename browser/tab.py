@@ -22,6 +22,10 @@ class Tab:
         self.tab_height = tab_height  # visible content's height
         self.history: list[URL] = []  # track visited pages
 
+        # Origins that we are allowed to make requests to
+        # (None means allow all)
+        self.allowed_origins: list[str] | None = None
+
         self._document: DocumentLayout | None = None
         self.scroll: float = 0
         self.display_list: list[BaseDrawCommand] = []
@@ -50,8 +54,23 @@ class Tab:
         # ===== HTML =====
         # ================
 
-        # Fetch and parse HTML
-        html_body = url.request(payload)
+        # Fetch the main page
+        response_headers, html_body = url.request(referrer=url, payload=payload)
+
+        # Decide allowed origins
+        if "content-security-policy" in response_headers:
+            content_security_policy = response_headers[
+                "content-security-policy"
+            ].split()
+            if (
+                len(content_security_policy) > 0
+                and content_security_policy[0] == "default-src"
+            ):
+                self.allowed_origins = []
+                for origin in content_security_policy[1:]:
+                    self.allowed_origins.append(URL(origin).origin())
+
+        # Parse HTML
         self.html_tree = HTMLParser(html_body).parse()
         self.nodes: list[Element | Text] = tree_to_list(self.html_tree, nodes=[])
 
@@ -72,8 +91,12 @@ class Tab:
         ]
         for link in links:
             style_url = url.resolve(link)
+            if not self.allowed_request(style_url):
+                print(f"Block link {style_url} due to CSP")
+                continue
+
             try:
-                css_body = style_url.request()
+                _, css_body = style_url.request(referrer=url)
                 css_rules.extend(CSSParser(css_body).parse())
             except:
                 continue  # Ignore failed style sheets
@@ -97,8 +120,12 @@ class Tab:
         ]
         for script_src in script_sources:
             script_url = url.resolve(script_src)
+            if not self.allowed_request(script_url):
+                print(f"Block script {script_url} due to CSP")
+                continue
+
             try:
-                js_body = script_url.request()
+                _, js_body = script_url.request(referrer=url)
             except:
                 continue  # Ignored failed requests
             self.js_context.run(script_src, code=js_body)
@@ -266,3 +293,6 @@ class Tab:
         # Make a POST request
         url = self.url.resolve(form.attributes["action"])
         self.load(url, body)
+
+    def allowed_request(self, url: URL) -> bool:
+        return self.allowed_origins is None or url.origin() in self.allowed_origins

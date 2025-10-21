@@ -4,9 +4,9 @@ import socket
 
 
 # Cookie jar:
-# - Map sites to cookies
+# - Store cookie and cookie attributes of sites
 # - Global, not limited to a particular tab
-COOKIE_JAR: dict[str, str] = {}
+COOKIE_JAR: dict[str, tuple[str, dict[str, str]]] = {}
 
 
 class URL:
@@ -44,8 +44,10 @@ class URL:
             # (ex) self.host = "example.com"
             # (ex) self.port = 8080
 
-    def request(self, payload: str | None = None) -> str:
-        """Send HTTP request and return response body"""
+    def request(
+        self, referrer: URL, payload: str | None = None
+    ) -> tuple[dict[str, str], str]:
+        """Send HTTP request. Return response headers and body"""
 
         # Establish TCP connection
         s = socket.socket(
@@ -71,7 +73,9 @@ class URL:
             lines.append("Content-Type: application/x-www-form-urlencoded")
 
         if self.host in COOKIE_JAR:
-            lines.append(f"Cookie: {COOKIE_JAR[self.host]}\r\n")
+            cookie, cookie_attributes = COOKIE_JAR[self.host]
+            if self.__should_send_cookie(cookie_attributes, method, referrer):
+                lines.append(f"Cookie: {cookie}")
 
         lines.append("")
 
@@ -100,14 +104,51 @@ class URL:
         assert "transfer-encoding" not in response_headers
         assert "content-encoding" not in response_headers
 
+        # Store cookies
         if "set-cookie" in response_headers:
-            # Simplification: only handle single cookie
-            COOKIE_JAR[self.host] = response_headers["set-cookie"]
+            cookie, cookie_attributes = self.__extract_cookie_and_attributes(
+                response_headers["set-cookie"]
+            )
+            # Simplification: overwrite existing cookies instead of merging
+            COOKIE_JAR[self.host] = (cookie, cookie_attributes)
 
         # Return response body and close connection
         content = response.read()
         s.close()
-        return content
+        return response_headers, content
+
+    def __extract_cookie_and_attributes(
+        self,
+        set_cookie_header: str,
+    ) -> tuple[str, dict[str, str]]:
+        """Extract cookie and cookie attributes from Set-Cookie response header."""
+        if ";" not in set_cookie_header:
+            return set_cookie_header, {}
+
+        cookie, attributes_part = set_cookie_header.split(";", 1)
+        cookie_attributes: dict[str, str] = {}
+
+        for attribute in attributes_part.split(";"):
+            if "=" in attribute:
+                key, value = attribute.split("=", 1)
+            else:
+                key, value = attribute, "true"
+            cookie_attributes[key.strip().casefold()] = value.casefold()
+
+        return cookie, cookie_attributes
+
+    def __should_send_cookie(
+        self, cookie_attributes: dict[str, str], method: str, referrer: URL
+    ) -> bool:
+        """Determine whether cookie should be sent with current request."""
+        # Only send cookies with SameSite=Lax if:
+        # - the method is GET (clicking a link).
+        # - OR the new URL and the top-level URL have the same host.
+        if cookie_attributes.get("samesite", "none") == "lax" and method != "GET":
+            return self.host == referrer.host
+
+        # Always send in other cases
+        return True
 
     def resolve(self, url: str) -> URL:
         """Resolve relative URL into full URL."""
@@ -142,6 +183,9 @@ class URL:
         # Case 4: Host-relative path (or resolved path from case 3)
         # (ex) "/base.css" -> "https://example.com:8080/base.css"
         return URL(f"{self.scheme}://{self.host}:{self.port}{url}")
+
+    def origin(self) -> str:
+        return f"{self.scheme}://{self.host}:{self.port}"
 
     def __str__(self):
         # Hide port number if using default port

@@ -52,13 +52,17 @@ def handle_connection(connection: socket.socket) -> None:
 
     # Prepare HTTP response
     response_content_length = len(response_body.encode("utf8"))
+    content_security_policy = "default-src http://localhost:8000"
     lines: list[str] = [
         f"HTTP/1.0 {status}",
         f"Content-Length: {response_content_length}",
+        f"Content-Security-Policy: {content_security_policy}",
     ]
+
     if "cookie" not in request_headers:
         # Set token cookie for new visitors
-        lines.append(f"Set-Cookie: token={token}")
+        lines.append(f"Set-Cookie: token={token}; SameSite=Lax")
+
     lines.append("")
     response = "\r\n".join(lines) + "\r\n"
     response += response_body

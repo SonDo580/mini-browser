@@ -115,5 +115,14 @@ class JSContext:
     def __xml_http_request_send(self, method: str, url: str, body: str) -> str:
         """Send an XMLHttpRequest. Return the response body."""
         full_url = self.tab.url.resolve(url)
-        response_body = full_url.request(body)
+
+        if not self.tab.allowed_request(full_url):
+            raise Exception("Cross-origin XHR blocked by CSP")
+
+        # Prevent cross-origin XHR requests
+        if full_url.origin() != self.tab.url.origin():
+            raise Exception("Cross-origin XHR request not allowed")
+
+        # Use the tab URL as the top level URL of XHR requests
+        response_body = full_url.request(referrer=self.tab.url, payload=body)
         return response_body
