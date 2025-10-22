@@ -47,6 +47,9 @@ class InputLayout(BaseLayout):
 
     def paint(self) -> list[BaseDrawCommand]:
         """Return drawing commands (display list) for this layout."""
+        if self.__is_hidden_input():
+            return []  # hide hidden input
+
         commands: list[BaseDrawCommand] = []
 
         # Draw the background
@@ -61,7 +64,7 @@ class InputLayout(BaseLayout):
             commands.append(DrawRect(rect=rect, color=bg_color))
 
         # Draw the text
-        text = self._extract_text()
+        text = self.__extract_text()
         text_color = self.node.style["color"]
         commands.append(
             DrawText(
@@ -87,9 +90,12 @@ class InputLayout(BaseLayout):
 
         return commands
 
-    def _extract_text(self) -> str:
+    def __extract_text(self) -> str:
         if self.node.tag == "input":
-            return self.node.attributes.get("value", "")
+            text = self.node.attributes.get("value", "")
+            if self.node.attributes.get("type") == "password":
+                return "*" * len(text)  # mask password
+            return text
 
         if (
             self.node.tag == "button"
@@ -107,3 +113,6 @@ class InputLayout(BaseLayout):
         Called by LineLayout to align items along the baseline.
         """
         self._y = value
+
+    def __is_hidden_input(self) -> bool:
+        return self.node.tag == "input" and self.node.attributes.get("type") == "hidden"
