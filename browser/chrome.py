@@ -1,12 +1,13 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from enum import Enum
+import skia
 
 from browser.constants import WIDTH, DEFAULT_LINK
 from browser.url import URL
-from browser.layout.base import BaseDrawCommand, Rect
+from browser.layout.base import BaseDrawCommand
 from browser.layout.draw_commands import DrawOutline, DrawText, DrawLine, DrawRect
-from browser.utils.font import get_font
+from browser.utils.font import get_font, linespace
 
 if TYPE_CHECKING:
     from browser.browser import Browser
@@ -26,8 +27,8 @@ class Chrome:
     def __init__(self, browser: Browser):
         self.browser = browser
 
-        self.font = get_font(size=20, weight="normal", style="roman")
-        self.font_height = self.font.metrics("linespace")
+        self.font: skia.Font = get_font(size=20, weight="normal", style="roman")
+        self.font_height = linespace(self.font)
 
         # Tab bar (new-tab button + tabs)
         self.padding = 5
@@ -46,47 +47,47 @@ class Chrome:
 
         self.bottom = self.url_bar_bottom
 
-    def _get_new_tab_button_rect(self) -> Rect:
+    def _get_new_tab_button_rect(self) -> skia.Rect:
         """Get rectangular boundary of the add-tag button."""
-        button_width = self.font.measure("+") + 2 * self.padding
+        button_width = self.font.measureText("+") + 2 * self.padding
         button_height = self.font_height
-        return Rect(
-            left=self.padding,
-            top=self.padding,
-            right=self.padding + button_width,
-            bottom=self.padding + button_height,
+        return skia.Rect.MakeLTRB(
+            l=self.padding,
+            t=self.padding,
+            r=self.padding + button_width,
+            b=self.padding + button_height,
         )
 
-    def _get_tab_rect(self, i: int) -> Rect:
+    def _get_tab_rect(self, i: int) -> skia.Rect:
         """Get rectangular boundary of a tab."""
-        tabs_start = self.new_tab_button_rect.right + self.padding
+        tabs_start = self.new_tab_button_rect.right() + self.padding
         tab_width = (
-            self.font.measure(f"Tab X") + 2 * self.padding
+            self.font.measureText(f"Tab X") + 2 * self.padding
         )  # X's width ~ digit's width
-        return Rect(
-            left=tabs_start + tab_width * i,
-            top=0,
-            right=tabs_start + tab_width * (i + 1),
-            bottom=self.tabbar_bottom,
+        return skia.Rect.MakeLTRB(
+            l=tabs_start + tab_width * i,
+            t=0,
+            r=tabs_start + tab_width * (i + 1),
+            b=self.tabbar_bottom,
         )
 
-    def _get_back_button_rect(self) -> Rect:
+    def _get_back_button_rect(self) -> skia.Rect:
         """Get rectangular boundary of the go-back button."""
-        button_width = self.font.measure("<") + 2 * self.padding
-        return Rect(
-            left=self.padding,
-            top=self.url_bar_top + self.padding,
-            right=self.padding + button_width,
-            bottom=self.url_bar_bottom - self.padding,
+        button_width = self.font.measureText("<") + 2 * self.padding
+        return skia.Rect.MakeLTRB(
+            l=self.padding,
+            t=self.url_bar_top + self.padding,
+            r=self.padding + button_width,
+            b=self.url_bar_bottom - self.padding,
         )
 
-    def _get_address_bar_rect(self) -> Rect:
+    def _get_address_bar_rect(self) -> skia.Rect:
         """Get rectangular boundary of the address bar."""
-        return Rect(
-            left=self.back_button_rect.right + self.padding,
-            top=self.url_bar_top + self.padding,
-            right=WIDTH - self.padding,
-            bottom=self.url_bar_bottom - self.padding,
+        return skia.Rect.MakeLTRB(
+            l=self.back_button_rect.right() + self.padding,
+            t=self.url_bar_top + self.padding,
+            r=WIDTH - self.padding,
+            b=self.url_bar_bottom - self.padding,
         )
 
     def paint(self) -> list[BaseDrawCommand]:
@@ -113,11 +114,15 @@ class Chrome:
     def _paint_background_and_border(self) -> list[BaseDrawCommand]:
         return [
             DrawRect(
-                rect=Rect(left=0, top=0, right=WIDTH, bottom=self.bottom),
+                rect=skia.Rect.MakeLTRB(
+                    l=0, t=0, r=WIDTH, b=self.bottom
+                ),
                 color="white",
             ),
             DrawLine(
-                rect=Rect(left=0, top=self.bottom, right=WIDTH, bottom=self.bottom),
+                rect=skia.Rect.MakeLTRB(
+                    l=0, t=self.bottom, r=WIDTH, b=self.bottom
+                ),
                 color="black",
                 thickness=1,
             ),
@@ -127,8 +132,8 @@ class Chrome:
         return [
             DrawOutline(rect=self.new_tab_button_rect, color="black", thickness=1),
             DrawText(
-                left=self.new_tab_button_rect.left + self.padding,
-                top=self.new_tab_button_rect.top,
+                left=self.new_tab_button_rect.left() + self.padding,
+                top=self.new_tab_button_rect.top(),
                 text="+",
                 font=self.font,
                 color="black",
@@ -152,28 +157,28 @@ class Chrome:
         tab_rect = self._get_tab_rect(tab_index)
         return [
             DrawLine(
-                rect=Rect(
-                    left=tab_rect.left,
-                    top=tab_rect.top,
-                    right=tab_rect.left,
-                    bottom=tab_rect.bottom,
+                rect=skia.Rect.MakeLTRB(
+                    l=tab_rect.left(),
+                    t=tab_rect.top(),
+                    r=tab_rect.left(),
+                    b=tab_rect.bottom(),
                 ),
                 color="black",
                 thickness=1,
             ),
             DrawLine(
-                rect=Rect(
-                    left=tab_rect.right,
-                    top=tab_rect.top,
-                    right=tab_rect.right,
-                    bottom=tab_rect.bottom,
+                rect=skia.Rect.MakeLTRB(
+                    l=tab_rect.right(),
+                    t=tab_rect.top(),
+                    r=tab_rect.right(),
+                    b=tab_rect.bottom(),
                 ),
                 color="black",
                 thickness=1,
             ),
             DrawText(
-                left=tab_rect.left + self.padding,
-                top=tab_rect.top + self.padding,
+                left=tab_rect.left() + self.padding,
+                top=tab_rect.top() + self.padding,
                 text=f"Tab {tab_index}",
                 font=self.font,
                 color="black",
@@ -184,21 +189,21 @@ class Chrome:
         tab_rect = self._get_tab_rect(tab_index)
         return [
             DrawLine(
-                rect=Rect(
-                    left=0,
-                    top=tab_rect.bottom,
-                    right=tab_rect.left,
-                    bottom=tab_rect.bottom,
+                rect=skia.Rect.MakeLTRB(
+                    l=0,
+                    t=tab_rect.bottom(),
+                    r=tab_rect.left(),
+                    b=tab_rect.bottom(),
                 ),
                 color="black",
                 thickness=1,
             ),
             DrawLine(
-                rect=Rect(
-                    left=tab_rect.right,
-                    top=tab_rect.bottom,
-                    right=WIDTH,
-                    bottom=tab_rect.bottom,
+                rect=skia.Rect.MakeLTRB(
+                    l=tab_rect.right(),
+                    t=tab_rect.bottom(),
+                    r=WIDTH,
+                    b=tab_rect.bottom(),
                 ),
                 color="black",
                 thickness=1,
@@ -209,8 +214,8 @@ class Chrome:
         return [
             DrawOutline(rect=self.back_button_rect, color="black", thickness=1),
             DrawText(
-                left=self.back_button_rect.left + self.padding,
-                top=self.back_button_rect.top,
+                left=self.back_button_rect.left() + self.padding,
+                top=self.back_button_rect.top(),
                 text="<",
                 font=self.font,
                 color="black",
@@ -238,21 +243,21 @@ class Chrome:
             text = self.address_input
 
         return DrawText(
-            left=self.address_bar_rect.left + self.padding,
-            top=self.address_bar_rect.top,
+            left=self.address_bar_rect.left() + self.padding,
+            top=self.address_bar_rect.top(),
             text=text,
             font=self.font,
             color="black",
         )
 
     def _paint_address_input_cursor(self) -> DrawLine:
-        address_input_width = self.font.measure(self.address_input)
+        address_input_width = self.font.measureText(self.address_input)
         return DrawLine(
-            rect=Rect(
-                left=self.address_bar_rect.left + self.padding + address_input_width,
-                top=self.address_bar_rect.top,
-                right=self.address_bar_rect.left + self.padding + address_input_width,
-                bottom=self.address_bar_rect.bottom,
+            rect=skia.Rect.MakeLTRB(
+                l=self.address_bar_rect.left() + self.padding + address_input_width,
+                t=self.address_bar_rect.top(),
+                r=self.address_bar_rect.left() + self.padding + address_input_width,
+                b=self.address_bar_rect.bottom(),
             ),
             color="red",
             thickness=1,
@@ -260,17 +265,17 @@ class Chrome:
 
     def click(self, x: int, y: int) -> None:
         """Handle click events inside the chrome area."""
-        if self.new_tab_button_rect.contains_point(x, y):
+        if self.new_tab_button_rect.contains(x, y):
             # Create a new tab (with default URL)
             self.browser.new_tab(URL(DEFAULT_LINK))
             return
 
-        if self.back_button_rect.contains_point(x, y):
+        if self.back_button_rect.contains(x, y):
             # Go back to the previous page
             self.browser.active_tab.go_back()
             return
 
-        if self.address_bar_rect.contains_point(x, y):
+        if self.address_bar_rect.contains(x, y):
             # Focus and clear address bar contents to start editing
             self.focused_component = ChromeComponent.ADDRESS_BAR
             self.address_input = ""
@@ -278,7 +283,7 @@ class Chrome:
 
         # Switch to the tab being clicked on
         for i, tab in enumerate(self.browser.tabs):
-            if self._get_tab_rect(i).contains_point(x, y):
+            if self._get_tab_rect(i).contains(x, y):
                 self.browser.set_active_tab(tab)
                 return
 

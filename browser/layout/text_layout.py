@@ -1,10 +1,11 @@
 from __future__ import annotations
-import tkinter.font
 from typing import TYPE_CHECKING
+import skia
 
 from browser.html.nodes import Text
 from browser.layout.base import BaseLayout, BaseDrawCommand
 from browser.layout.draw_commands import DrawText
+from browser.utils.font import linespace
 
 if TYPE_CHECKING:
     from browser.layout.line_layout import LineLayout
@@ -18,7 +19,7 @@ class TextLayout(BaseLayout):
         self,
         node: Text,
         word: str,
-        font: tkinter.font.Font,
+        font: skia.Font,
         parent: LineLayout,
         previous: TextLayout | InputLayout | None,
     ):
@@ -32,16 +33,18 @@ class TextLayout(BaseLayout):
 
     def layout(self):
         """Compute display info."""
-        self._width = self.font.measure(self.word)
+        self._width = self.font.measureText(self.word)
 
         if self.previous:
             self._x = (
-                self.previous.x + self.previous.width + self.previous.font.measure(" ")
+                self.previous.x
+                + self.previous.width
+                + self.previous.font.measureText(" ")
             )
         else:
             self._x = self.parent.x
 
-        self._height = self.font.metrics("linespace")
+        self._height = linespace(self.font)
 
         # The y position of a word depends on the other items in the same line,
         # so we’ll compute that inside LineLayout’s 'layout' method.

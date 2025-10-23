@@ -1,4 +1,4 @@
-import tkinter.font
+import skia
 
 from browser.html.nodes import Element
 from browser.utils.font import get_font
@@ -14,10 +14,10 @@ def tree_to_list(tree, nodes: list) -> list:
     return nodes
 
 
-def get_font_from_css(node: Element) -> tkinter.font.Font:
+def get_font_from_css(node: Element) -> skia.Font:
     """
-    Extract CSS styles and convert to Tk format.
-    Create and return the font object.
+    Extract font-related CSS properties from a node and
+    return the corresponding skia.Font object.
     """
     font_weight = node.style["font-weight"]
 
@@ -29,6 +29,6 @@ def get_font_from_css(node: Element) -> tkinter.font.Font:
 
     font_size = int(
         float(node.style["font-size"][:-2]) * 0.75
-    )  # CSS pixels -> Tk points
+    )  # pixels -> points
 
     return get_font(font_size, font_weight, font_style)

@@ -19,6 +19,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Installation notes
+
+This project depends on **Skia** (for 2D graphics rendering) and **SDL2** (for window management and input handling). These libraries may require system-level dependencies.
+
+Consult the [skia-python](https://pypi.org/project/skia-python/) and [pysdl2](https://pysdl2.readthedocs.io/en/latest/install.html) web pages for more details.
+
 ## Usage
 
 1. **Browser usage:**

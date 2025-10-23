@@ -1,11 +1,12 @@
 from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING
+import skia
 
 from browser.constants import BLOCK_ELEMENTS, INPUT_WIDTH_PX
 from browser.html.nodes import Text, Element
 from browser.utils.common import get_font_from_css
-from browser.layout.base import BaseLayout, BaseDrawCommand, Rect
+from browser.layout.base import BaseLayout, BaseDrawCommand
 from browser.layout.draw_commands import DrawRect
 from browser.layout.line_layout import LineLayout
 from browser.layout.text_layout import TextLayout
@@ -131,8 +132,8 @@ class BlockLayout(BaseLayout):
         Create a TextLayout and place it in the current LineLayout.
         Start a new line if adding word causes overflow.
         """
-        font = get_font_from_css(node)
-        word_width = font.measure(word)
+        font: skia.Font = get_font_from_css(node)
+        word_width = font.measureText(word)
 
         # Start a new line if adding word causes overflow
         if self.cursor_x + word_width > self.width:
@@ -147,14 +148,14 @@ class BlockLayout(BaseLayout):
         line_layout.children.append(text_layout)
 
         # Update horizontal position for the next item
-        self.cursor_x += word_width + font.measure(" ")
+        self.cursor_x += word_width + font.measureText(" ")
 
     def handle_input(self, node: Element) -> None:
         """
         Create an InputLayout and place it in the current LineLayout.
         Start a new line if adding the input/button causes overflow.
         """
-        font = get_font_from_css(node)
+        font: skia.Font = get_font_from_css(node)
         input_width = INPUT_WIDTH_PX
 
         # Start a new line if adding input/button causes overflow
@@ -168,18 +169,18 @@ class BlockLayout(BaseLayout):
         line_layout.children.append(input_layout)
 
         # Update horizontal position for the next item
-        self.cursor_x += input_width + font.measure(" ")
+        self.cursor_x += input_width + font.measureText(" ")
 
     def paint(self) -> list[BaseDrawCommand]:
         """Return the drawing commands (display list) for current layout"""
         # Add DrawRect command to draw background
         bg_color = self.node.style.get("background-color", "transparent")
         if bg_color != "transparent":
-            rect = Rect(
-                top=self.x,
-                left=self.y,
-                right=self.x + self.width,
-                bottom=self.y + self.height,
+            rect = skia.Rect.MakeLTRB(
+                l=self.x,
+                t=self.y,
+                r=self.x + self.width,
+                b=self.y + self.height,
             )
             return [DrawRect(rect=rect, color=bg_color)]
 

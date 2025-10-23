@@ -5,6 +5,7 @@ from browser.html.nodes import Text, Element
 from browser.layout.base import BaseLayout, BaseDrawCommand
 from browser.layout.text_layout import TextLayout
 from browser.layout.input_layout import InputLayout
+from browser.utils.font import ascent, descent
 
 if TYPE_CHECKING:
     from browser.layout.block_layout import BlockLayout
@@ -43,24 +44,26 @@ class LineLayout(BaseLayout):
 
         # Layout each child in the line
         for child_layout in self.children:
-            child_layout.layout()            
+            child_layout.layout()
+
+        # Note that Skia font's ascent and descent are positive if they go downward and negative if they go upward
+
+        # Find the highest (most negative) ascent
+        min_ascent = min([ascent(child_layout.font) for child_layout in self.children])
 
         # Calculate baseline for current line
-        max_ascent = max(
-            [child_layout.font.metrics("ascent") for child_layout in self.children]
-        )
-        baseline = self.y + max_ascent * 1.25
+        baseline = self.y - min_ascent * 1.25
 
         # Align children along the baseline
         for child_layout in self.children:
-            child_layout.set_y(baseline - child_layout.font.metrics("ascent"))
+            child_layout.set_y(baseline + ascent(child_layout.font))
 
-        # Compute line's height
-        # = height of the tallest child multiplied with a factor to add space between lines
+        # Compute line's height as max_descent - min_ascent
+        # (multiplied with a factor to add space between lines)
         max_descent = max(
-            [child_layout.font.metrics("descent") for child_layout in self.children]
+            [descent(child_layout.font) for child_layout in self.children]
         )
-        self._height = (max_ascent + max_descent) * 1.25
+        self._height = (max_descent - min_ascent) * 1.25
 
     def paint(self) -> list[BaseDrawCommand]:
         """Return drawing commands (display list) for this layout."""

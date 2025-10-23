@@ -1,6 +1,5 @@
-import tkinter
+import skia
 import urllib.parse
-import dukpy
 
 from browser.constants import VSTEP, SCROLL_STEP
 from browser.url import URL
@@ -150,13 +149,13 @@ class Tab:
         # Collect draw commands (display list)
         paint_tree(self.document, self.display_list)
 
-    def draw(self, canvas: tkinter.Canvas, offset: float) -> None:
+    def draw(self, canvas: skia.Canvas, offset: float) -> None:
         """Draw the visible content onto the canvas."""
         for draw_command in self.display_list:
             # Skip off-screen content
             if (
-                draw_command.rect.top > self.scroll + self.tab_height
-                or draw_command.rect.bottom < self.scroll
+                draw_command.rect.top() > self.scroll + self.tab_height
+                or draw_command.rect.bottom() < self.scroll
             ):
                 continue
 

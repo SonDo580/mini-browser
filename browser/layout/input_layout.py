@@ -1,11 +1,13 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+import skia
 
 from browser.constants import INPUT_WIDTH_PX
 from browser.html.nodes import Text, Element
-from browser.layout.base import BaseLayout, BaseDrawCommand, Rect
+from browser.layout.base import BaseLayout, BaseDrawCommand
 from browser.layout.draw_commands import DrawRect, DrawText, DrawLine
 from browser.utils.common import get_font_from_css
+from browser.utils.font import linespace
 
 if TYPE_CHECKING:
     from browser.layout.line_layout import LineLayout
@@ -27,7 +29,7 @@ class InputLayout(BaseLayout):
         self.previous: InputLayout | TextLayout | None = previous
         self.children = []  # always empty (only accept simple text for button)
 
-        self.font = get_font_from_css(node)
+        self.font: skia.Font = get_font_from_css(node)
 
     def layout(self):
         """Compute display info."""
@@ -35,12 +37,14 @@ class InputLayout(BaseLayout):
 
         if self.previous:
             self._x = (
-                self.previous.x + self.previous.width + self.previous.font.measure(" ")
+                self.previous.x
+                + self.previous.width
+                + self.previous.font.measureText(" ")
             )
         else:
             self._x = self.parent.x
 
-        self._height = self.font.metrics("linespace")
+        self._height = linespace(self.font)
 
         # The y position of input/button depends on the other items in the same line,
         # so we’ll compute that inside LineLayout’s 'layout' method.
@@ -55,11 +59,11 @@ class InputLayout(BaseLayout):
         # Draw the background
         bg_color = self.node.style.get("background-color", "transparent")
         if bg_color != "transparent":
-            rect = Rect(
-                left=self.x,
-                top=self.y,
-                right=self.x + self.width,
-                bottom=self.y + self.height,
+            rect = skia.Rect.MakeLTRB(
+                l=self.x,
+                t=self.y,
+                r=self.x + self.width,
+                b=self.y + self.height,
             )
             commands.append(DrawRect(rect=rect, color=bg_color))
 
@@ -74,14 +78,14 @@ class InputLayout(BaseLayout):
 
         # Draw a cursor if the input is focused
         if self.node.is_focused:
-            text_end_x = self.x + self.font.measure(text)
+            text_end_x = self.x + self.font.measureText(text)
             commands.append(
                 DrawLine(
-                    rect=Rect(
-                        left=text_end_x,
-                        top=self.y,
-                        right=text_end_x,
-                        bottom=self.y + self.height,
+                    rect=skia.Rect.MakeLTRB(
+                        l=text_end_x,
+                        t=self.y,
+                        r=text_end_x,
+                        b=self.y + self.height,
                     ),
                     color="black",
                     thickness=1,

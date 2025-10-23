@@ -1,30 +1,16 @@
 from __future__ import annotations
 import abc
-import tkinter
+import skia
 
 from browser.html.nodes import Text, Element
 
 
-class Rect:
-    """Represent a rectangular region."""
-
-    def __init__(self, left: float, top: float, right: float, bottom: float):
-        self.left = left
-        self.top = top
-        self.right = right
-        self.bottom = bottom
-
-    def contains_point(self, x: float, y: float) -> bool:
-        """Check if a point is contained in this region."""
-        return self.left <= x < self.right and self.top <= y < self.bottom
-
-
 class BaseDrawCommand(abc.ABC):
     """Abstract base class for drawing commands"""
-    rect: Rect
+    rect: skia.Rect
 
     @abc.abstractmethod
-    def execute(self, scroll: float, canvas: tkinter.Canvas) -> None:
+    def execute(self, scroll: float, canvas: skia.Canvas) -> None:
         """Draw onto the canvas"""
         ...
 
