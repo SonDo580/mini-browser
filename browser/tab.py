@@ -50,6 +50,9 @@ class Tab:
         self._url = url
         self.history.append(url)  # record visited page
 
+        # Start at the top when navigating to a new page
+        self.scroll = 0
+
         # ===== HTML =====
         # ================
 
@@ -134,17 +137,15 @@ class Tab:
 
     def render(self) -> None:
         """Apply style and layout the document."""
+        # Reset display list before re-rendering
+        self.display_list = []
+
         # Apply style rules to the HTML tree
         style(self.html_tree, self.sorted_css_rules)
 
         # Build layout tree
         self._document = DocumentLayout(self.html_tree)
         self.document.layout()
-
-        # Reset display list and scroll offset
-        # (ensure clean state when navigating to a new page)
-        self.display_list = []
-        self.scroll = 0
 
         # Collect draw commands (display list)
         paint_tree(self.document, self.display_list)
