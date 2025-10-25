@@ -99,8 +99,8 @@ class CSSParser:
 
     def parse_selector(self) -> TagSelector | DescendantSelector:
         """Parse a selector
-        - Single tag: 'p'
-        - Descendant: 'div p'
+        - Example tag selector: 'p'
+        - Example descendant selector: 'div p'
         """
         tag = self.__read_word().casefold()
         selector = TagSelector(tag)

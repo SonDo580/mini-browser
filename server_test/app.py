@@ -123,11 +123,18 @@ def show_guestbook(session: dict[str, Any]) -> str:
     for comment, person in ENTRIES:
         output += f"""<p>{html.escape(comment)}
 <i>by {html.escape(person)}</i></p>"""
-
+        
     output += """<script src="/static/test.js"></script>"""
 
     # Test Content Security Policy
     output += "<script src=https://example.com/evil.js></script>"
+
+    # Test transparency
+    output += """
+<div style="font-size: 50px; background-color: orange; color: #00000080">
+    Test
+</div>
+"""
 
     return output
 
