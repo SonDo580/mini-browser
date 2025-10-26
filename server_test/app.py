@@ -131,7 +131,7 @@ def show_guestbook(session: dict[str, Any]) -> str:
 
     # Test transparency
     output += """
-<div style="font-size: 50px; background-color: orange; color: #00000080">
+<div style="font-size: 50px; background-color: orange; color: #00000080; border-radius: 10px">
     Test
 </div>
 """

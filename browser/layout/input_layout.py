@@ -5,7 +5,7 @@ import skia
 from browser.constants import INPUT_WIDTH_PX
 from browser.html.nodes import Text, Element
 from browser.layout.base import BaseLayout, BaseDrawCommand
-from browser.layout.draw_commands import DrawRect, DrawText, DrawLine
+from browser.layout.draw_commands import DrawRoundedRect, DrawText, DrawLine
 from browser.utils.common import get_font_from_css
 from browser.utils.font import linespace
 
@@ -65,7 +65,8 @@ class InputLayout(BaseLayout):
                 r=self.x + self.width,
                 b=self.y + self.height,
             )
-            commands.append(DrawRect(rect=rect, color=bg_color))
+            radius = float(self.node.style.get("border-radius", "0px")[:-2])
+            commands.append(DrawRoundedRect(rect=rect, radius=radius, color=bg_color))
 
         # Draw the text
         text = self.__extract_text()

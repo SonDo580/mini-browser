@@ -7,7 +7,7 @@ from browser.constants import BLOCK_ELEMENTS, INPUT_WIDTH_PX
 from browser.html.nodes import Text, Element
 from browser.utils.common import get_font_from_css
 from browser.layout.base import BaseLayout, BaseDrawCommand
-from browser.layout.draw_commands import DrawRect
+from browser.layout.draw_commands import DrawRoundedRect
 from browser.layout.line_layout import LineLayout
 from browser.layout.text_layout import TextLayout
 from browser.layout.input_layout import InputLayout
@@ -173,7 +173,7 @@ class BlockLayout(BaseLayout):
 
     def paint(self) -> list[BaseDrawCommand]:
         """Return the drawing commands (display list) for current layout"""
-        # Add DrawRect command to draw background
+        # Draw the background
         bg_color = self.node.style.get("background-color", "transparent")
         if bg_color != "transparent":
             rect = skia.Rect.MakeLTRB(
@@ -182,7 +182,8 @@ class BlockLayout(BaseLayout):
                 r=self.x + self.width,
                 b=self.y + self.height,
             )
-            return [DrawRect(rect=rect, color=bg_color)]
+            radius = float(self.node.style.get("border-radius", "0px")[:-2])
+            return [DrawRoundedRect(rect=rect, radius=radius, color=bg_color)]
 
         return []
 

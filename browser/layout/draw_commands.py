@@ -42,6 +42,25 @@ class DrawRect(BaseDrawCommand):
         canvas.drawRect(offset_rect, paint)
 
 
+class DrawRoundedRect(BaseDrawCommand):
+    """Drawing command to render a rounded filled rectangle."""
+
+    def __init__(self, rect: skia.Rect, radius: float, color: str):
+        self.rect = rect
+        self.radius = radius
+        self.color = color
+
+    def execute(self, scroll: float, canvas: skia.Canvas) -> None:
+        paint = skia.Paint(Color=parse_color(self.color))
+        offset_rect = self.rect.makeOffset(
+            0, -scroll
+        )  # shift the rectangle vertically by -scroll
+        rounded_rect = skia.RRect.MakeRectXY(
+            offset_rect, self.radius, self.radius
+        )
+        canvas.drawRRect(rounded_rect, paint)
+
+
 class DrawOutline(BaseDrawCommand):
     """Drawing command to render a rectangular outline."""
 
