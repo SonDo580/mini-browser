@@ -1,3 +1,5 @@
+from typing import Literal
+
 from browser.constants import SELF_CLOSING_TAGS, HEAD_TAGS
 from browser.html.nodes import Element, Text
 
@@ -113,7 +115,7 @@ class HTMLParser:
         - the tag name.
         - a dictionary of attribute key/value pairs.
         """
-        parts = raw_tag.split()
+        parts = self.__split_outside_quotes(raw_tag)
         tag = parts[0].casefold()
 
         attributes: dict[str, str] = {}
@@ -132,6 +134,50 @@ class HTMLParser:
             attributes[key.casefold()] = value
 
         return tag, attributes
+
+    def __split_outside_quotes(self, s: str) -> list[str]:
+        """Split a string by whitespace. Preserve quoted values."""
+        parts: list[str] = []
+        current_part_chars: list[str] = []
+        i = 0
+
+        while i < len(s):
+            char = s[i]
+
+            # Append all characters between quotes to current part
+            if char in ["'", '"']:
+                quote = char
+                current_part_chars.append(quote)
+                i += 1
+                while i < len(s):
+                    current_part_chars.append(s[i])
+                    if s[i] == quote:
+                        i += 1
+                        break
+                    i += 1
+                continue
+
+            # Encounter whitespace outside quotes
+            if char.isspace():
+                # Collect then reset current part if present
+                if current_part_chars:
+                    parts.append("".join(current_part_chars))
+                    current_part_chars = []
+
+                # Skip contiguous spaces
+                while i < len(s) and s[i].isspace():
+                    i += 1
+                continue
+
+            # Add regular characters to current part
+            current_part_chars.append(char)
+            i += 1
+
+        # Handle the last part if present
+        if current_part_chars:
+            parts.append("".join(current_part_chars))
+
+        return parts
 
     def finish(self) -> Element:
         """

@@ -27,8 +27,6 @@ def get_font_from_css(node: Element) -> skia.Font:
     elif font_style == "oblique":
         font_style = "italic"
 
-    font_size = int(
-        float(node.style["font-size"][:-2]) * 0.75
-    )  # pixels -> points
+    font_size = int(float(node.style["font-size"][:-2]))  # remove 'px' suffix
 
     return get_font(font_size, font_weight, font_style)
