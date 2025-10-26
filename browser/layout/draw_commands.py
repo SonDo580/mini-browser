@@ -18,12 +18,12 @@ class DrawText(BaseDrawCommand):
         self.font = font
         self.color = color
 
-    def execute(self, scroll: float, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas) -> None:
         paint = skia.Paint(
             AntiAlias=True,  # draw some semi-transparent pixels to better approximate the shape of the text
             Color=parse_color(self.color),
         )
-        baseline = self.rect.top() - scroll - ascent(self.font)
+        baseline = self.rect.top() - ascent(self.font)
         canvas.drawString(self.text, self.rect.left(), baseline, self.font, paint)
 
 
@@ -34,31 +34,21 @@ class DrawRect(BaseDrawCommand):
         self.rect = rect
         self.color = color
 
-    def execute(self, scroll: float, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas) -> None:
         paint = skia.Paint(Color=parse_color(self.color))
-        offset_rect = self.rect.makeOffset(
-            0, -scroll
-        )  # shift the rectangle vertically by -scroll
-        canvas.drawRect(offset_rect, paint)
+        canvas.drawRect(self.rect, paint)
 
 
 class DrawRoundedRect(BaseDrawCommand):
     """Drawing command to render a rounded filled rectangle."""
 
     def __init__(self, rect: skia.Rect, radius: float, color: str):
-        self.rect = rect
-        self.radius = radius
+        self.rounded_rect = skia.RRect.MakeRectXY(rect, radius, radius)
         self.color = color
 
-    def execute(self, scroll: float, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas) -> None:
         paint = skia.Paint(Color=parse_color(self.color))
-        offset_rect = self.rect.makeOffset(
-            0, -scroll
-        )  # shift the rectangle vertically by -scroll
-        rounded_rect = skia.RRect.MakeRectXY(
-            offset_rect, self.radius, self.radius
-        )
-        canvas.drawRRect(rounded_rect, paint)
+        canvas.drawRRect(self.rounded_rect, paint)
 
 
 class DrawOutline(BaseDrawCommand):
@@ -69,16 +59,13 @@ class DrawOutline(BaseDrawCommand):
         self.color = color
         self.thickness = thickness
 
-    def execute(self, scroll: float, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas) -> None:
         paint = skia.Paint(
             Color=parse_color(self.color),
             StrokeWidth=self.thickness,
             Style=skia.Paint.kStroke_Style,  # draw along border
         )
-        offset_rect = self.rect.makeOffset(
-            0, -scroll
-        )  # shift the rectangle vertically by -scroll
-        canvas.drawRect(offset_rect, paint)
+        canvas.drawRect(self.rect, paint)
 
 
 class DrawLine(BaseDrawCommand):
@@ -94,11 +81,11 @@ class DrawLine(BaseDrawCommand):
         self.color = color
         self.thickness = thickness
 
-    def execute(self, scroll: float, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas) -> None:
         path = (
             skia.Path()
-            .moveTo(self.rect.left(), self.rect.top() - scroll)
-            .lineTo(self.rect.right(), self.rect.bottom() - scroll)
+            .moveTo(self.rect.left(), self.rect.top())
+            .lineTo(self.rect.right(), self.rect.bottom())
         )
         paint = skia.Paint(
             Color=parse_color(self.color),

@@ -150,18 +150,10 @@ class Tab:
         # Collect draw commands (display list)
         paint_tree(self.document, self.display_list)
 
-    def draw(self, canvas: skia.Canvas, offset: float) -> None:
-        """Draw the visible content onto the canvas."""
+    def raster(self, canvas: skia.Canvas) -> None:
+        """Draw the whole tab onto the canvas."""
         for draw_command in self.display_list:
-            # Skip off-screen content
-            if (
-                draw_command.rect.top() > self.scroll + self.tab_height
-                or draw_command.rect.bottom() < self.scroll
-            ):
-                continue
-
-            # Shift content downward by the chrome height (offset)
-            draw_command.execute(scroll=self.scroll - offset, canvas=canvas)
+            draw_command.execute(canvas)
 
     def scroll_down(self) -> None:
         """Scroll downward without exceeding document's height."""

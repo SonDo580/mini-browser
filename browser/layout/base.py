@@ -10,7 +10,7 @@ class BaseDrawCommand(abc.ABC):
     rect: skia.Rect
 
     @abc.abstractmethod
-    def execute(self, scroll: float, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas) -> None:
         """Draw onto the canvas"""
         ...
 
