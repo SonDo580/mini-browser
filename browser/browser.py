@@ -158,59 +158,65 @@ class Browser:
             draw_command.execute(canvas)
 
     def handle_down(self) -> None:
-        self.active_tab.scroll_down()
-        self.draw()
+        if self.active_tab.scroll_down():
+            self.draw()
 
     def handle_up(self) -> None:
-        self.active_tab.scroll_up()
-        self.draw()
+        if self.active_tab.scroll_up():
+            self.draw()
 
     def handle_click(self, x: int, y: int) -> None:
         if y < self.chrome.bottom:
             # Click on the chrome area
+            old_url = self.active_tab.url
             self.focused_component = BrowserComponent.CHROME
-            self.chrome.click(x, y)
+            if not self.chrome.click(x, y):
+                return 
+            
             self.raster_chrome()
+            if self.active_tab.url != old_url:
+                self.raster_tab()  
+            self.draw()
         else:
             # Click on the tab content area
             self.focused_component = BrowserComponent.CONTENT
-            self.chrome.blur()
+            chrome_blur_handled = self.chrome.blur()
 
-            url = self.active_tab.url
+            old_url = self.active_tab.url
             tab_y = y - self.chrome.bottom
-            self.active_tab.click(x, tab_y)
+            tab_clicked_handled = self.active_tab.click(x, tab_y)
 
-            if self.active_tab.url != url:
-                # Raster the chrome if URL changed (link click)
-                self.raster_chrome()  
-            self.raster_tab()
-        self.draw()
+            if chrome_blur_handled or self.active_tab.url != old_url:
+                self.raster_chrome()
+            if tab_clicked_handled:
+                self.raster_tab()
+            self.draw()
 
     def handle_key(self, char: str) -> None:
         if self.focused_component == BrowserComponent.CHROME:
-            self.chrome.keypress(char)
-            self.raster_chrome()
-            self.draw()
+            if self.chrome.keypress(char):
+                self.raster_chrome()
+                self.draw()
         elif self.focused_component == BrowserComponent.CONTENT:
-            self.active_tab.keypress(char)
-            self.raster_tab()
-            self.draw()
+            if self.active_tab.keypress(char):
+                self.raster_tab()
+                self.draw()
 
     def handle_enter(self) -> None:
-        self.chrome.enter()
-        self.raster_chrome()
-        self.raster_tab()
-        self.draw()
+        if self.chrome.enter():
+            self.raster_chrome()
+            self.raster_tab()
+            self.draw()
 
     def handle_backspace(self) -> None:
         if self.focused_component == BrowserComponent.CHROME:
-            self.chrome.backspace()
-            self.raster_chrome()
-            self.draw()
+            if self.chrome.backspace():
+                self.raster_chrome()
+                self.draw()
         elif self.focused_component == BrowserComponent.CONTENT:
-            self.active_tab.backspace()
-            self.raster_tab()
-            self.draw()
+            if self.active_tab.backspace():
+                self.raster_tab()
+                self.draw()
 
     def handle_quit(self):
         """Clean up the window object."""

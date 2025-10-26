@@ -114,15 +114,11 @@ class Chrome:
     def _paint_background_and_border(self) -> list[BaseDrawCommand]:
         return [
             DrawRect(
-                rect=skia.Rect.MakeLTRB(
-                    l=0, t=0, r=WIDTH, b=self.bottom
-                ),
+                rect=skia.Rect.MakeLTRB(l=0, t=0, r=WIDTH, b=self.bottom),
                 color="white",
             ),
             DrawLine(
-                rect=skia.Rect.MakeLTRB(
-                    l=0, t=self.bottom, r=WIDTH, b=self.bottom
-                ),
+                rect=skia.Rect.MakeLTRB(l=0, t=self.bottom, r=WIDTH, b=self.bottom),
                 color="black",
                 thickness=1,
             ),
@@ -263,49 +259,61 @@ class Chrome:
             thickness=1,
         )
 
-    def click(self, x: int, y: int) -> None:
-        """Handle click events inside the chrome area."""
+    def click(self, x: int, y: int) -> bool:
+        """Handle click events inside the chrome area. Return True if handled."""
         if self.new_tab_button_rect.contains(x, y):
             # Create a new tab (with default URL)
             self.browser.new_tab(URL(DEFAULT_LINK))
-            return
+            return True
 
         if self.back_button_rect.contains(x, y):
             # Go back to the previous page
             self.browser.active_tab.go_back()
-            return
+            return True
 
         if self.address_bar_rect.contains(x, y):
             # Focus and clear address bar contents to start editing
             self.focused_component = ChromeComponent.ADDRESS_BAR
             self.address_input = ""
-            return
+            return True
 
         # Switch to the tab being clicked on
         for i, tab in enumerate(self.browser.tabs):
             if self._get_tab_rect(i).contains(x, y):
                 self.browser.set_active_tab(tab)
-                return
+                return True
 
-    def keypress(self, char: str) -> None:
-        """Handle keypress event."""
+        return False
+
+    def keypress(self, char: str) -> bool:
+        """Handle keypress event. Return True if handled."""
         if self.focused_component == ChromeComponent.ADDRESS_BAR:
             # Append character to address input
             self.address_input += char
+            return True
+        return False
 
-    def enter(self) -> None:
-        """Handle pressing Enter."""
+    def enter(self) -> bool:
+        """Handle pressing Enter. Return True if handled."""
         if self.focused_component == ChromeComponent.ADDRESS_BAR:
             # Go to the new address
             self.browser.active_tab.load(URL(self.address_input))
             self.focused_component = None
+            return True
+        return False
 
-    def backspace(self) -> None:
-        """Handle pressing BackSpace."""
+    def backspace(self) -> bool:
+        """Handle pressing BackSpace. Return True if handled."""
         if self.focused_component == ChromeComponent.ADDRESS_BAR:
-            # Remove the last character from address input
-            self.address_input = self.address_input[:-1]
+            if len(self.address_input) > 0:
+                # Remove the last character from address input
+                self.address_input = self.address_input[:-1]
+                return True
+        return False
 
-    def blur(self) -> None:
-        """Unfocus the chrome."""
-        self.focused_component = None
+    def blur(self) -> bool:
+        """Unfocus the chrome. Return True if handled."""
+        if self.focused_component:
+            self.focused_component = None
+            return True
+        return False

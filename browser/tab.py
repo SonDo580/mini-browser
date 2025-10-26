@@ -155,25 +155,38 @@ class Tab:
         for draw_command in self.display_list:
             draw_command.execute(canvas)
 
-    def scroll_down(self) -> None:
-        """Scroll downward without exceeding document's height."""
-        # - content_height = tab_height - padding
+    def scroll_down(self) -> bool:
+        """
+        Scroll downward without exceeding document's height.
+        Return True if scroll value changed.
+        """
+        # . content_height = tab_height - padding
         #   max_y = document_height - content_height
-        # - If document is shorter than content area,
+        # . If document is shorter than content area,
         #   scrolling should happen at all -> max_y stays at 0
         max_y = max(self.document.height + 2 * VSTEP - self.tab_height, 0)
+
+        old_scroll = self.scroll
         self.scroll = min(self.scroll + SCROLL_STEP, max_y)
+        return self.scroll != old_scroll
 
-    def scroll_up(self) -> None:
-        """Scroll upward without passing the top of the document."""
+    def scroll_up(self) -> bool:
+        """
+        Scroll upward without passing the top of the document.
+        Return True if scroll value changed.
+        """
+        old_scroll = self.scroll
         self.scroll = max(self.scroll - SCROLL_STEP, 0)
+        return self.scroll != old_scroll
 
-    def click(self, x: int, tab_y: int) -> None:
-        """Handle click events inside the tab content area."""
+    def click(self, x: int, tab_y: int) -> bool:
+        """Handle click events inside the tab content area. Return True if handled."""
         # Clear focus
+        cleared_focus = False
         if self.focused_element:
             self.focused_element.is_focused = False
             self.focused_element = None
+            cleared_focus = True
 
         # Convert screen coordinates to page coordinates
         y = tab_y + self.scroll
@@ -186,10 +199,12 @@ class Tab:
             and layout.x <= x <= layout.x + layout.width
             and layout.y <= y <= layout.y + layout.height
         ]
+
         if not layouts:
-            # Re-render since we might have unfocused an input element
+            if not cleared_focus:
+                return False
             self.render()
-            return
+            return True
 
         # Find the most specific node that was clicked
         # (Real browsers have to compute stacking contexts to decide)
@@ -202,56 +217,64 @@ class Tab:
         while element:
             if element.tag == "a" and "href" in element.attributes:
                 if self.js_context.dispatch_event("click", element):
-                    return  # e.preventDefault() is called in JS
+                    return True # e.preventDefault() is called in JS
 
                 # Navigate to the linked page
                 linked_url = self.url.resolve(element.attributes["href"])
-                return self.load(linked_url)  # reload
+                self.load(linked_url)  # reload
+                return True
             elif element.tag == "input":
                 if self.js_context.dispatch_event("click", element):
-                    return  # e.preventDefault() is called in JS
+                    return True  # e.preventDefault() is called in JS
 
                 # Focus on the input and clear existing value
                 self.focused_element = element
                 element.is_focused = True
                 element.attributes["value"] = ""
-                return self.render()  # re-render
+                self.render()  # re-render
+                return True
             elif element.tag == "button":
                 if self.js_context.dispatch_event("click", element):
-                    return  # e.preventDefault() is called in JS
+                    return True # e.preventDefault() is called in JS
 
                 # Submit the form that contains the button
                 while element:
                     if element.tag == "form" and "action" in element.attributes:
-                        return self.submit_form(element)
+                        self.submit_form(element)
+                        return True
                     element = element.parent
                 break
 
             element = element.parent
 
-        # Re-render since we might have unfocused an input element
+        if not cleared_focus:
+            return False
         self.render()
+        return True
 
-    def keypress(self, char: str) -> None:
-        """Handle keypress event inside tab content area."""
+    def keypress(self, char: str) -> bool:
+        """Handle keypress event. Return True if handled."""
         if self.focused_element and self.focused_element.tag == "input":
             if self.js_context.dispatch_event("keydown", self.focused_element):
-                return  # e.preventDefault() is called in JS
+                return True # e.preventDefault() is called in JS
 
             # Append character to input
             self.focused_element.attributes["value"] += char
             self.render()  # re-render
+            return True
+        return False
 
-    def backspace(self) -> None:
-        """Handle pressing BackSpace."""
+    def backspace(self) -> bool:
+        """Handle pressing BackSpace. Return True if handled."""
         if self.focused_element and self.focused_element.tag == "input":
             if self.js_context.dispatch_event("keydown", self.focused_element):
-                return  # e.preventDefault() is called in JS
+                return True # e.preventDefault() is called in JS
 
             # Remove the last character from input
             new_value = self.focused_element.attributes["value"][:-1]
             self.focused_element.attributes["value"] = new_value
             self.render()  # re-render
+            return True
 
     def go_back(self) -> None:
         """Go back to the previous page."""
