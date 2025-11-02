@@ -1,7 +1,8 @@
-from browser.layout.base import BaseDrawCommand, BaseLayout
+from browser.layout.base import BaseLayout
+from browser.render.base import BaseDrawCommand
 
 
-def paint_tree(layout: BaseLayout, display_list: list[BaseDrawCommand]):
+def paint_tree(layout: BaseLayout, display_list: list[BaseDrawCommand]) -> None:
     """
     Recursively walk the layout tree and collect all drawing commands (display list).
     Each layout object generates its own drawing commands via the `paint` method.

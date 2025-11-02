@@ -156,7 +156,7 @@ COLOR_HEX = {
 
 
 def parse_color(color: str) -> skia.Color:
-    """Convert a color string into a Skia Color object."""
+    """Convert a CSS color string into a Skia Color object."""
     color = color.lower()
 
     if color == "transparent":
@@ -168,7 +168,7 @@ def parse_color(color: str) -> skia.Color:
 
     # Handle hex format
     if color.startswith("#"):
-        rgba = _parse_hex_color(color)
+        rgba = __parse_hex_color(color)
         if rgba:
             r, g, b, a = rgba
             return skia.Color(r, g, b, a)
@@ -176,7 +176,7 @@ def parse_color(color: str) -> skia.Color:
     return skia.ColorBLACK  # fallback
 
 
-def _parse_hex_color(hex_color: str) -> tuple[int, int, int, int] | None:
+def __parse_hex_color(hex_color: str) -> tuple[int, int, int, int] | None:
     """Parse a hex color string (#RGB, #RGBA, #RRGGBB, #RRGGBBAA) into RGBA tuple."""
     try:
         if len(hex_color) == 4:  # #RGB

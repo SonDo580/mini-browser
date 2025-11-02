@@ -1,18 +1,8 @@
 from __future__ import annotations
 import abc
-import skia
 
 from browser.html.nodes import Text, Element
-
-
-class BaseDrawCommand(abc.ABC):
-    """Abstract base class for drawing commands"""
-    rect: skia.Rect
-
-    @abc.abstractmethod
-    def execute(self, canvas: skia.Canvas) -> None:
-        """Draw onto the canvas"""
-        ...
+from browser.render.base import BaseDrawCommand
 
 
 class BaseLayout(abc.ABC):

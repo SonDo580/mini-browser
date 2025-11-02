@@ -1,6 +1,6 @@
 import skia
 
-from browser.layout.base import BaseDrawCommand
+from browser.render.base import BaseDrawCommand
 from browser.utils.font import linespace, ascent
 from browser.utils.color import parse_color
 

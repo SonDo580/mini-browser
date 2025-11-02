@@ -103,6 +103,11 @@ class Browser:
         canvas.translate(0, tab_offset)
         self.tab_surface.draw(canvas, 0, 0)
         canvas.restore()
+        # - canvas.save(), canvas.restore(): push and pop drawing state
+        #   (prevent clipping/translation from affecting subsequent drawing)
+        # - canvas.clipRect(): limit drawing to a rectangular region
+        #   (the clip boundary stay fixed in device space when coordinate system translates)
+        # - canvas.translate(): shift the coordinate system
 
         # Copy from chrome surface to root surface
         chrome_rect = skia.Rect.MakeLTRB(l=0, t=0, r=WIDTH, b=self.chrome.bottom)
@@ -171,11 +176,11 @@ class Browser:
             old_url = self.active_tab.url
             self.focused_component = BrowserComponent.CHROME
             if not self.chrome.click(x, y):
-                return 
-            
+                return
+
             self.raster_chrome()
             if self.active_tab.url != old_url:
-                self.raster_tab()  
+                self.raster_tab()
             self.draw()
         else:
             # Click on the tab content area

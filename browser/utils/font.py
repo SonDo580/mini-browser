@@ -1,6 +1,8 @@
 import skia
 from typing import Literal
 
+from browser.html.nodes import Element
+
 # Supported font weights and styles
 TWeight = Literal["normal", "bold"]
 TStyle = Literal["roman", "italic"]
@@ -40,6 +42,24 @@ def get_font(size: int, weight: TWeight, style: TStyle) -> skia.Font:
 
     # Return a skia.Font object for the given size
     return skia.Font(TYPEFACES[key], size)
+
+
+def get_font_from_css(node: Element) -> skia.Font:
+    """
+    Extract font-related CSS properties from a node and
+    return the corresponding skia.Font object.
+    """
+    font_weight = node.style["font-weight"]
+
+    font_style = node.style["font-style"]
+    if font_style == "normal":
+        font_style = "roman"
+    elif font_style == "oblique":
+        font_style = "italic"
+
+    font_size = int(float(node.style["font-size"][:-2]))  # remove 'px' suffix
+
+    return get_font(font_size, font_weight, font_style)
 
 
 # ===== Utility functions for working with Skia font metrics =====

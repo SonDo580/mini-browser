@@ -1,6 +1,7 @@
 from browser.constants import WIDTH, HSTEP, VSTEP
-from browser.layout.base import BaseLayout, BaseDrawCommand
+from browser.layout.base import BaseLayout
 from browser.layout.block_layout import BlockLayout
+from browser.render.base import BaseDrawCommand
 from browser.html.nodes import Element
 
 

@@ -4,10 +4,10 @@ import skia
 
 from browser.constants import INPUT_WIDTH_PX
 from browser.html.nodes import Text, Element
-from browser.layout.base import BaseLayout, BaseDrawCommand
-from browser.layout.draw_commands import DrawRoundedRect, DrawText, DrawLine
-from browser.utils.common import get_font_from_css
-from browser.utils.font import linespace
+from browser.layout.base import BaseLayout
+from browser.render.base import BaseDrawCommand
+from browser.render.draw_commands import DrawRoundedRect, DrawText, DrawLine
+from browser.utils.font import get_font_from_css, linespace
 
 if TYPE_CHECKING:
     from browser.layout.line_layout import LineLayout

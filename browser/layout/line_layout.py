@@ -2,9 +2,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from browser.html.nodes import Text, Element
-from browser.layout.base import BaseLayout, BaseDrawCommand
+from browser.layout.base import BaseLayout
 from browser.layout.text_layout import TextLayout
 from browser.layout.input_layout import InputLayout
+from browser.render.base import BaseDrawCommand
 from browser.utils.font import ascent, descent
 
 if TYPE_CHECKING:

@@ -3,8 +3,9 @@ from typing import TYPE_CHECKING
 import skia
 
 from browser.html.nodes import Text
-from browser.layout.base import BaseLayout, BaseDrawCommand
-from browser.layout.draw_commands import DrawText
+from browser.layout.base import BaseLayout
+from browser.render.base import BaseDrawCommand
+from browser.render.draw_commands import DrawText
 from browser.utils.font import linespace
 
 if TYPE_CHECKING:

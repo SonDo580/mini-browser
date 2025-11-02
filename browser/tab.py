@@ -5,12 +5,13 @@ from browser.constants import VSTEP, SCROLL_STEP
 from browser.url import URL
 from browser.html.html_parser import HTMLParser
 from browser.html.nodes import Element, Text
-from browser.css.common import style, cascade_priority
+from browser.css.utils import style, cascade_priority
 from browser.css.default import DEFAULT_STYLE_SHEET
 from browser.css.css_parser import CSSParser
 from browser.layout.document_layout import DocumentLayout
-from browser.layout.base import BaseDrawCommand, BaseLayout
-from browser.layout.common import paint_tree
+from browser.layout.base import BaseLayout
+from browser.layout.utils import paint_tree
+from browser.render.base import BaseDrawCommand
 from browser.utils.common import tree_to_list
 from browser.js.js_context import JSContext
 

@@ -5,8 +5,8 @@ import skia
 
 from browser.constants import WIDTH, DEFAULT_LINK
 from browser.url import URL
-from browser.layout.base import BaseDrawCommand
-from browser.layout.draw_commands import DrawOutline, DrawText, DrawLine, DrawRect
+from browser.render.base import BaseDrawCommand
+from browser.render.draw_commands import DrawOutline, DrawText, DrawLine, DrawRect
 from browser.utils.font import get_font, linespace
 
 if TYPE_CHECKING:

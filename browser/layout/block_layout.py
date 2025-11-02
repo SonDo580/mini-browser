@@ -5,9 +5,10 @@ import skia
 
 from browser.constants import BLOCK_ELEMENTS, INPUT_WIDTH_PX
 from browser.html.nodes import Text, Element
-from browser.utils.common import get_font_from_css
-from browser.layout.base import BaseLayout, BaseDrawCommand
-from browser.layout.draw_commands import DrawRoundedRect
+from browser.utils.font import get_font_from_css
+from browser.layout.base import BaseLayout
+from browser.render.base import BaseDrawCommand
+from browser.render.draw_commands import DrawRoundedRect
 from browser.layout.line_layout import LineLayout
 from browser.layout.text_layout import TextLayout
 from browser.layout.input_layout import InputLayout
