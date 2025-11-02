@@ -1,8 +1,10 @@
 from __future__ import annotations
 import abc
+import skia
 
 from browser.html.nodes import Text, Element
 from browser.render.base import BaseDrawCommand
+from browser.render.utils import paint_visual_effects
 
 
 class BaseLayout(abc.ABC):
@@ -59,3 +61,18 @@ class BaseLayout(abc.ABC):
     def should_paint(self) -> bool:
         """Whether to collect draw commands from current layout."""
         return True
+
+    def bound_rect(self) -> skia.Rect:
+        """Return the rectangular box of this layout."""
+        return skia.Rect.MakeLTRB(
+            l=self.x,
+            t=self.y,
+            r=self.x + self.width,
+            b=self.y + self.height,
+        )
+
+    def paint_effects(self, commands: list[BaseDrawCommand]) -> list[BaseDrawCommand]:
+        """Wrap this layout tree's display list with visual effects."""
+        return paint_visual_effects(
+            node=self.node, commands=commands, rect=self.bound_rect()
+        )

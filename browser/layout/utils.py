@@ -3,13 +3,21 @@ from browser.render.base import BaseDrawCommand
 
 
 def paint_tree(layout: BaseLayout, display_list: list[BaseDrawCommand]) -> None:
-    """
-    Recursively walk the layout tree and collect all drawing commands (display list).
-    Each layout object generates its own drawing commands via the `paint` method.
-    """
-    # [!] Nested layouts should be painted on top of parent layout (z-axis)
-    #     -> call 'paint' on current layout before recursing into subtree
-    if layout.should_paint():
-        display_list.extend(layout.paint())
+    """Recursively walk the layout tree and collect drawing commands (display list)."""
+    should_paint = layout.should_paint()
+    commands: list[BaseDrawCommand] = []
+
+    # Nested layouts are painted on top of their parent (z-axis)
+    # -> paint current layout before recursing into children
+    if should_paint:
+        commands.extend(layout.paint())
+
     for child_layout in layout.children:
-        paint_tree(child_layout, display_list)
+        paint_tree(child_layout, commands)
+
+    # Visual effects apply to the entire subtree's display list,
+    # -> paint visual effects after recursing into children
+    if should_paint:
+        commands = layout.paint_effects(commands)
+
+    display_list.extend(commands)

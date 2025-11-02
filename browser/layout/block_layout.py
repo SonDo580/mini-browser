@@ -177,14 +177,10 @@ class BlockLayout(BaseLayout):
         # Draw the background
         bg_color = self.node.style.get("background-color", "transparent")
         if bg_color != "transparent":
-            rect = skia.Rect.MakeLTRB(
-                l=self.x,
-                t=self.y,
-                r=self.x + self.width,
-                b=self.y + self.height,
-            )
             radius = float(self.node.style.get("border-radius", "0px")[:-2])
-            return [DrawRoundedRect(rect=rect, radius=radius, color=bg_color)]
+            return [
+                DrawRoundedRect(rect=self.bound_rect(), radius=radius, color=bg_color)
+            ]
 
         return []
 

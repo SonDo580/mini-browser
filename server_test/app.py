@@ -61,15 +61,54 @@ def serve_static(url_path: str) -> tuple[str, str]:
 
 
 def login_form() -> str:
-    return """
+    out = """
 <!DOCTYPE html>
 <form action=/ method=post>
     <p>Username: <input name=username></p>
     <p>Password: <input name=password type=password></p>
     <p><button>Log in</button></p>
 </form>
+""" 
+
+    # Test transparency
+    out += """
+<div style="font-size: 50px; background-color: orange; color: #00000080; border-radius: 10px">
+    Test
+</div>
 """
 
+    # Test opacity
+    out += """
+<div style="background-color:purple">
+    Parent
+    <div style="background-color:yellow;opacity:0.5">
+        Child (50% opacity)
+    </div>
+    Parent
+</div>
+"""
+
+    # Test blend mode
+    out += """
+<div style="background-color:orange">
+    Parent
+    <div style="background-color:blue;mix-blend-mode:difference">
+        Child
+    </div>
+    Parent
+</div>
+"""
+
+    # Test "overflow: clip"
+    out += """
+<div 
+  style="border-radius:30px;background-color:lightblue;overflow:clip">
+    This test text exists here to ensure that the "div" element is
+    large enough that the border radius is obvious.
+</div>
+"""
+
+    return out
 
 def do_login(session: dict[str, Any], params: dict[str, str]) -> tuple[str, str]:
     """Handle login. Return status and response body."""
@@ -128,13 +167,6 @@ def show_guestbook(session: dict[str, Any]) -> str:
 
     # Test Content Security Policy
     output += "<script src=https://example.com/evil.js></script>"
-
-    # Test transparency
-    output += """
-<div style="font-size: 50px; background-color: orange; color: #00000080; border-radius: 10px">
-    Test
-</div>
-"""
 
     return output
 

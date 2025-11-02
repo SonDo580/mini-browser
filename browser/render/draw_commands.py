@@ -43,6 +43,7 @@ class DrawRoundedRect(BaseDrawCommand):
     """Drawing command to render a rounded filled rectangle."""
 
     def __init__(self, rect: skia.Rect, radius: float, color: str):
+        self.rect = rect
         self.rounded_rect = skia.RRect.MakeRectXY(rect, radius, radius)
         self.color = color
 
