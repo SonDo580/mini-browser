@@ -14,6 +14,7 @@ from browser.layout.utils import paint_tree
 from browser.render.base import BaseDrawCommand
 from browser.utils.common import tree_to_list
 from browser.js.js_context import JSContext
+from browser.tasks import TaskRunner, Task
 
 
 class Tab:
@@ -21,6 +22,7 @@ class Tab:
         self._url: URL | None = None
         self.tab_height = tab_height  # visible content's height
         self.history: list[URL] = []  # track visited pages
+        self.task_runner = TaskRunner(self)
 
         # Origins that we are allowed to make requests to
         # (None means allow all)
@@ -131,7 +133,10 @@ class Tab:
                 _, js_body = script_url.request(referrer=url)
             except:
                 continue  # Ignored failed requests
-            self.js_context.run(script_src, code=js_body)
+
+            # Schedule a task to execute the script
+            task = Task(self.js_context.run, script_src, js_body)
+            self.task_runner.schedule_task(task)
 
         # ===== Rendering =====
         self.render()
@@ -218,7 +223,7 @@ class Tab:
         while element:
             if element.tag == "a" and "href" in element.attributes:
                 if self.js_context.dispatch_event("click", element):
-                    return True # e.preventDefault() is called in JS
+                    return True  # e.preventDefault() is called in JS
 
                 # Navigate to the linked page
                 linked_url = self.url.resolve(element.attributes["href"])
@@ -236,7 +241,7 @@ class Tab:
                 return True
             elif element.tag == "button":
                 if self.js_context.dispatch_event("click", element):
-                    return True # e.preventDefault() is called in JS
+                    return True  # e.preventDefault() is called in JS
 
                 # Submit the form that contains the button
                 while element:
@@ -257,7 +262,7 @@ class Tab:
         """Handle keypress event. Return True if handled."""
         if self.focused_element and self.focused_element.tag == "input":
             if self.js_context.dispatch_event("keydown", self.focused_element):
-                return True # e.preventDefault() is called in JS
+                return True  # e.preventDefault() is called in JS
 
             # Append character to input
             self.focused_element.attributes["value"] += char
@@ -269,7 +274,7 @@ class Tab:
         """Handle pressing BackSpace. Return True if handled."""
         if self.focused_element and self.focused_element.tag == "input":
             if self.js_context.dispatch_event("keydown", self.focused_element):
-                return True # e.preventDefault() is called in JS
+                return True  # e.preventDefault() is called in JS
 
             # Remove the last character from input
             new_value = self.focused_element.attributes["value"][:-1]

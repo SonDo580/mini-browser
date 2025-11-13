@@ -8,9 +8,11 @@ from browser.constants import DEFAULT_LINK
 
 
 def mainloop(browser: Browser):
-    """Run the main SDL event loop that to handle user input events."""
+    """Run the main SDL event loop."""
     event = sdl2.SDL_Event()
+
     while True:
+        # Process user input events
         while sdl2.SDL_PollEvent(ctypes.byref(event)) != 0:
             # Close window
             if event.type == sdl2.SDL_QUIT:
@@ -42,6 +44,9 @@ def mainloop(browser: Browser):
             # Text input (printable characters)
             elif event.type == sdl2.SDL_TEXTINPUT:
                 browser.handle_key(event.text.text.decode("utf8"))
+
+        # Run 1 scheduled task
+        browser.active_tab.task_runner.run()
 
 
 if __name__ == "__main__":
