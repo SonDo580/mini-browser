@@ -1,5 +1,7 @@
+from __future__ import annotations
 from collections import deque
 from typing import TYPE_CHECKING, Callable, Any
+import threading
 
 if TYPE_CHECKING:
     from browser.tab import Tab
@@ -30,12 +32,26 @@ class TaskRunner:
         self.tab = tab
         self.tasks: deque[Task] = deque()
 
+        # Condition object providing:
+        # - A lock to prevent multiple threads accessing the task queue simultaneously
+        # - A wait/notify mechanism so threads can sleep until new tasks arrive
+        self.condition = threading.Condition()
+
     def schedule_task(self, task: Task):
         """Add a task to the queue for later execution."""
+        self.condition.acquire(blocking=True)
         self.tasks.append(task)
+        self.condition.notify_all()  # Wake up waiting threads
+        self.condition.release()
 
     def run(self):
         """Execute the next scheduled task."""
+        task: Task | None = None
+        self.condition.acquire(blocking=True)
+
         if len(self.tasks) > 0:
             task = self.tasks.popleft()
+
+        self.condition.release()  # Release lock before running task
+        if task:
             task.run()

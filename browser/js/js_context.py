@@ -2,10 +2,12 @@ from __future__ import annotations
 import dukpy
 from typing import Any, TYPE_CHECKING
 from pathlib import Path
+import threading
 
 from browser.html.nodes import Element
 from browser.html.html_parser import HTMLParser
 from browser.css.css_parser import CSSParser
+from browser.tasks import Task
 
 if TYPE_CHECKING:
     from browser.tab import Tab
@@ -15,15 +17,21 @@ if TYPE_CHECKING:
 runtime_js_path: Path = Path(__file__).parent / "runtime.js"
 RUNTIME_JS: str = open(runtime_js_path).read()
 
-# JS code to dispatch event
-# (JS object 'dukpy' stores the named arguments to 'evaljs')
+# ===== JS snippets =====
+# (The JS object 'dukpy' stores the named arguments to 'evaljs')
+# 
+# Fire an event on a DOM node 
 EVENT_DISPATCH_JS = "new Node(dukpy.handle).dispatchEvent(new Event(dukpy.type))"
+# 
+# Trigger a setTimeout callback
+SETTIMEOUT_JS = "__runSetTimeout(dukpy.handle)"
 
 
 class JSContext:
     """Environment to run JS code."""
 
     def __init__(self, tab: Tab):
+        self.discarded = False
         self.tab = tab
         self.interpreter = dukpy.JSInterpreter()
 
@@ -40,6 +48,7 @@ class JSContext:
         self.interpreter.export_function(
             "XMLHttpRequest_send", self.__xml_http_request_send
         )
+        self.interpreter.export_function("setTimeout", self.__set_timeout)
 
         # Execute JS runtime code before any user code
         self.interpreter.evaljs(RUNTIME_JS)
@@ -50,6 +59,10 @@ class JSContext:
             return self.interpreter.evaljs(code)
         except dukpy.JSRuntimeError as e:
             print(f"Script {script_src} crashed: {e}")
+
+    def discard(self) -> None:
+        """Discard current JS context to prevent pending callbacks from executing."""
+        self.discarded = True
 
     def dispatch_event(self, event_type: str, element: Element) -> bool:
         """
@@ -126,3 +139,20 @@ class JSContext:
         # Use the tab URL as the top level URL of XHR requests
         response_body = full_url.request(referrer=self.tab.url, payload=body)
         return response_body
+
+    def __dispatch_settimeout(self, handle: int) -> None:
+        """
+        Execute a JS setTimeout callback.
+        Skip if the JS context is already discarded.
+        """
+        if not self.discarded:
+            self.interpreter.evaljs(SETTIMEOUT_JS, handle=handle)
+
+    def __set_timeout(self, handle: int, delay_ms: int) -> None:
+        """Schedule a JS setTimeout callback."""
+
+        def __run_callback() -> None:
+            task = Task(self.__dispatch_settimeout, handle)
+            self.tab.task_runner.schedule_task(task)
+
+        threading.Timer(delay_ms / 1000.0, __run_callback).start()

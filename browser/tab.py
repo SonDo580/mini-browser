@@ -22,6 +22,7 @@ class Tab:
         self._url: URL | None = None
         self.tab_height = tab_height  # visible content's height
         self.history: list[URL] = []  # track visited pages
+        self.js_context: JSContext | None = None
         self.task_runner = TaskRunner(self)
 
         # Origins that we are allowed to make requests to
@@ -113,6 +114,10 @@ class Tab:
 
         # ===== JavaScript =====
         # ======================
+        
+        # Discard existing JS context then create a new one
+        if self.js_context:
+            self.js_context.discard()
         self.js_context = JSContext(self)
 
         # Download and run all scripts

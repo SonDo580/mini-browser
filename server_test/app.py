@@ -108,6 +108,8 @@ def login_form() -> str:
 </div>
 """
 
+    out += """<script src="/static/test1.js"></script>"""
+
     return out
 
 def do_login(session: dict[str, Any], params: dict[str, str]) -> tuple[str, str]:
