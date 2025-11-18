@@ -80,14 +80,18 @@ document = {
 };
 
 // ===== XMLHttpRequest =====
-function XMLHttpRequest() {}
+
+XHR_REQUESTS = {}; // Map handle to XMLHttpRequest
+
+function XMLHttpRequest() {
+  this.handle = Object.keys(XHR_REQUESTS).length;
+  XHR_REQUESTS[this.handle] = this;
+}
 
 XMLHttpRequest.prototype.open = function (method, url, is_async) {
-  if (is_async) {
-    throw new Error("Asynchronous XHR is not supported");
-  }
   this.method = method;
   this.url = url;
+  this.is_async = is_async;
 };
 
 XMLHttpRequest.prototype.send = function (body) {
@@ -95,9 +99,21 @@ XMLHttpRequest.prototype.send = function (body) {
     "XMLHttpRequest_send",
     this.method,
     this.url,
-    body
+    body,
+    this.is_async,
+    this.handle
   );
 };
+
+function __runXHROnload(body, handle) {
+  var xhr_obj = XHR_REQUESTS[handle];
+  xhr_obj.responseText = body;
+
+  var event = new Event("load");
+  if (xhr_obj.onload) {
+    xhr_obj.onload(event);
+  }
+}
 
 // ===== Timers =====
 SET_TIMEOUT_REQUESTS = {}; // Map handle to callback functions

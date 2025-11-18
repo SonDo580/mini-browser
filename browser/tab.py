@@ -20,19 +20,15 @@ from browser.tasks import TaskRunner, Task
 class Tab:
     def __init__(self, tab_height: float):
         self._url: URL | None = None
-        self.tab_height = tab_height  # visible content's height
         self.history: list[URL] = []  # track visited pages
         self.js_context: JSContext | None = None
         self.task_runner = TaskRunner(self)
+        self.allowed_origins: list[str] | None = None  # None means allow all
 
-        # Origins that we are allowed to make requests to
-        # (None means allow all)
-        self.allowed_origins: list[str] | None = None
-
+        self.tab_height = tab_height  # visible content's height
         self._document: DocumentLayout | None = None
         self.scroll: float = 0
         self.display_list: list[BaseDrawCommand] = []
-
         self.focused_element: Element | None = None
 
     @property
@@ -114,7 +110,7 @@ class Tab:
 
         # ===== JavaScript =====
         # ======================
-        
+
         # Discard existing JS context then create a new one
         if self.js_context:
             self.js_context.discard()

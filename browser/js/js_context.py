@@ -19,12 +19,15 @@ RUNTIME_JS: str = open(runtime_js_path).read()
 
 # ===== JS snippets =====
 # (The JS object 'dukpy' stores the named arguments to 'evaljs')
-# 
-# Fire an event on a DOM node 
+#
+# Fire an event on a DOM node
 EVENT_DISPATCH_JS = "new Node(dukpy.handle).dispatchEvent(new Event(dukpy.type))"
-# 
+#
 # Trigger a setTimeout callback
 SETTIMEOUT_JS = "__runSetTimeout(dukpy.handle)"
+#
+# Trigger an XHR's onload handler
+XHR_ONLOAD_JS = "__runXHROnload(dukpy.body, dukpy.handle)"
 
 
 class JSContext:
@@ -125,8 +128,10 @@ class JSContext:
         # Re-render the page
         self.tab.render()
 
-    def __xml_http_request_send(self, method: str, url: str, body: str) -> str:
-        """Send an XMLHttpRequest. Return the response body."""
+    def __xml_http_request_send(
+        self, method: str, url: str, body: str, is_async: bool, handle: int
+    ) -> None:
+        """Send an XMLHttpRequest."""
         full_url = self.tab.url.resolve(url)
 
         if not self.tab.allowed_request(full_url):
@@ -136,9 +141,30 @@ class JSContext:
         if full_url.origin() != self.tab.url.origin():
             raise Exception("Cross-origin XHR request not allowed")
 
-        # Use the tab URL as the top level URL of XHR requests
-        response_body = full_url.request(referrer=self.tab.url, payload=body)
-        return response_body
+        if not is_async:
+            response_headers, response_body = full_url.request(
+                referrer=self.tab.url, payload=body
+            )
+            self.__dispatch_xhr_onload(response_body, handle)
+            return
+
+        # Run async request in a new thread and schedule onload
+        def __run_load():
+            response_headers, response_body = full_url.request(
+                referrer=self.tab.url, payload=body
+            )
+            task = Task(self.__dispatch_xhr_onload, response_body, handle)
+            self.tab.task_runner.schedule_task(task)
+
+        threading.Thread(target=__run_load).start()
+
+    def __dispatch_xhr_onload(self, body: str, handle: int) -> None:
+        """
+        Trigger an XHR's onload handler.
+        Skip if the JS context is already discarded.
+        """
+        if not self.discarded:
+            self.interpreter.evaljs(XHR_ONLOAD_JS, body=body, handle=handle)
 
     def __dispatch_settimeout(self, handle: int) -> None:
         """
