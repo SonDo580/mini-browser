@@ -61,16 +61,22 @@ class Tab:
 
         # Decide allowed origins
         if "content-security-policy" in response_headers:
-            content_security_policy = response_headers[
-                "content-security-policy"
-            ].split()
-            if (
-                len(content_security_policy) > 0
-                and content_security_policy[0] == "default-src"
-            ):
-                self.allowed_origins = []
-                for origin in content_security_policy[1:]:
-                    self.allowed_origins.append(URL(origin).origin())
+            csp_directives = response_headers["content-security-policy"].split(";")
+
+            self.allowed_origins = []
+            for directive in csp_directives:
+                tokens = directive.strip().split()
+
+                # Only handle "default-src" for now
+                if tokens and tokens[0] == "default-src":
+                    for origin in tokens[1:]:
+                        normalized_origin = (
+                            self.url.origin()
+                            if origin == "'self'"
+                            else URL(origin).origin()
+                        )
+                        self.allowed_origins.append(normalized_origin)
+                    break
 
         # Parse HTML
         self.html_tree = HTMLParser(html_body).parse()
