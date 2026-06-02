@@ -129,8 +129,8 @@ class JSContext:
         for child in element.children:
             child.parent = element
 
-        # Re-render the page
-        self.tab.render()
+        # Need to re-render the page
+        self.tab.set_needs_render()
 
     def __xml_http_request_send(
         self, method: str, url: str, body: str, is_async: bool, handle: int

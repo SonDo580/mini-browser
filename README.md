@@ -74,5 +74,6 @@ python -m browser http://localhost:8000
 - **CSS**:
   - transparency & more color formats.
 - **render & display**:
+  - more granular raster-and-draw control (extra dirty flags)
   - hidden input & password masking.
   - draw rounded rectangle.

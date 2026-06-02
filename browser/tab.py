@@ -1,5 +1,7 @@
+from __future__ import annotations
 import skia
 import urllib.parse
+from typing import TYPE_CHECKING
 
 from browser.constants import VSTEP, SCROLL_STEP
 from browser.url import URL
@@ -16,20 +18,25 @@ from browser.utils.common import tree_to_list
 from browser.js.js_context import JSContext
 from browser.tasks import TaskRunner, Task
 
+if TYPE_CHECKING:
+    from browser.browser import Browser
+
 
 class Tab:
-    def __init__(self, tab_height: float):
+    def __init__(self, browser: Browser, tab_height: float):
         self._url: URL | None = None
         self.history: list[URL] = []  # track visited pages
         self.js_context: JSContext | None = None
         self.task_runner = TaskRunner(self)
         self.allowed_origins: list[str] | None = None  # None means allow all
+        self.browser = browser
 
         self.tab_height = tab_height  # visible content's height
         self._document: DocumentLayout | None = None
         self.scroll: float = 0
         self.display_list: list[BaseDrawCommand] = []
         self.focused_element: Element | None = None
+        self.needs_render: bool = False
 
     @property
     def document(self) -> DocumentLayout:
@@ -146,10 +153,13 @@ class Tab:
             self.task_runner.schedule_task(task)
 
         # ===== Rendering =====
-        self.render()
+        self.set_needs_render()
 
     def render(self) -> None:
         """Apply style and layout the document."""
+        if not self.needs_render:
+            return
+
         # Reset display list before re-rendering
         self.display_list = []
 
@@ -163,10 +173,18 @@ class Tab:
         # Collect draw commands (display list)
         paint_tree(self.document, self.display_list)
 
+        self.needs_render = False
+        self.browser.set_needs_raster_and_draw(
+            needs_raster_chrome=True, needs_raster_tab=True, needs_draw=True
+        )
+
     def raster(self, canvas: skia.Canvas) -> None:
         """Draw the whole tab onto the canvas."""
         for draw_command in self.display_list:
             draw_command.execute(canvas)
+
+    def set_needs_render(self) -> None:
+        self.needs_render = True
 
     def scroll_down(self) -> bool:
         """
@@ -192,14 +210,16 @@ class Tab:
         self.scroll = max(self.scroll - SCROLL_STEP, 0)
         return self.scroll != old_scroll
 
-    def click(self, x: int, tab_y: int) -> bool:
-        """Handle click events inside the tab content area. Return True if handled."""
-        # Clear focus
-        cleared_focus = False
+    def click(self, x: int, tab_y: int) -> None:
+        """Handle click events inside the tab content area."""
+        # Ensure the layout tree is up to date
+        self.render()
+
+        # Clear focus if needed
         if self.focused_element:
             self.focused_element.is_focused = False
             self.focused_element = None
-            cleared_focus = True
+            self.set_needs_render()
 
         # Convert screen coordinates to page coordinates
         y = tab_y + self.scroll
@@ -214,10 +234,7 @@ class Tab:
         ]
 
         if not layouts:
-            if not cleared_focus:
-                return False
-            self.render()
-            return True
+            return
 
         # Find the most specific node that was clicked
         # (Real browsers have to compute stacking contexts to decide)
@@ -230,65 +247,59 @@ class Tab:
         while element:
             if element.tag == "a" and "href" in element.attributes:
                 if self.js_context.dispatch_event("click", element):
-                    return True  # e.preventDefault() is called in JS
+                    return  # e.preventDefault() is called in JS
 
                 # Navigate to the linked page
                 linked_url = self.url.resolve(element.attributes["href"])
-                self.load(linked_url)  # reload
-                return True
+                self.load(linked_url)
+                return
+
             elif element.tag == "input":
                 if self.js_context.dispatch_event("click", element):
-                    return True  # e.preventDefault() is called in JS
+                    return  # e.preventDefault() is called in JS
 
                 # Focus on the input and clear existing value
                 self.focused_element = element
                 element.is_focused = True
                 element.attributes["value"] = ""
-                self.render()  # re-render
-                return True
+                self.set_needs_render()
+                return
+
             elif element.tag == "button":
                 if self.js_context.dispatch_event("click", element):
-                    return True  # e.preventDefault() is called in JS
+                    return  # e.preventDefault() is called in JS
 
                 # Submit the form that contains the button
                 # and navigate to the form's action URL
                 while element:
                     if element.tag == "form" and "action" in element.attributes:
                         self.submit_form(element)
-                        return True
+                        break
                     element = element.parent
-                break
+                return
 
             element = element.parent
 
-        if not cleared_focus:
-            return False
-        self.render()
-        return True
-
-    def keypress(self, char: str) -> bool:
-        """Handle keypress event. Return True if handled."""
+    def keypress(self, char: str) -> None:
+        """Handle keypress event."""
         if self.focused_element and self.focused_element.tag == "input":
             if self.js_context.dispatch_event("keydown", self.focused_element):
-                return True  # e.preventDefault() is called in JS
+                return  # e.preventDefault() is called in JS
 
             # Append character to input
             self.focused_element.attributes["value"] += char
-            self.render()  # re-render
-            return True
-        return False
+            self.set_needs_render()
 
-    def backspace(self) -> bool:
-        """Handle pressing BackSpace. Return True if handled."""
+    def backspace(self) -> None:
+        """Handle pressing BackSpace."""
         if self.focused_element and self.focused_element.tag == "input":
             if self.js_context.dispatch_event("keydown", self.focused_element):
-                return True  # e.preventDefault() is called in JS
+                return  # e.preventDefault() is called in JS
 
             # Remove the last character from input
             new_value = self.focused_element.attributes["value"][:-1]
             self.focused_element.attributes["value"] = new_value
-            self.render()  # re-render
-            return True
+            self.set_needs_render()
 
     def go_back(self) -> None:
         """Go back to the previous page."""

@@ -259,35 +259,35 @@ class Chrome:
             thickness=1,
         )
 
-    def click(self, x: int, y: int) -> None:
-        """Handle click events inside the chrome area."""
+    def click(self, x: int, y: int) -> bool:
+        """Handle click events inside the chrome area. Return True if handled."""
         if self.new_tab_button_rect.contains(x, y):
             # Create a new tab (with default URL)
             self.browser.new_tab(URL(DEFAULT_LINK))
-            return
+            return True
 
         if self.back_button_rect.contains(x, y):
             # Go back to the previous page
             self.browser.active_tab.go_back()
-            return
+            return True
 
         if self.address_bar_rect.contains(x, y):
             # Focus and clear address bar contents to start editing
             self.focused_component = ChromeComponent.ADDRESS_BAR
             self.address_input = ""
-            return
+            return True
 
         # Switch to the tab being clicked on
         for i, tab in enumerate(self.browser.tabs):
             if self._get_tab_rect(i).contains(x, y):
                 self.browser.set_active_tab(tab)
-                return
+                return True
 
         # Clicked on empty area -> blur address bar
         # - don't have to restore address input,
         #   since url is shown if address bar is not focused,
         #   and address input is reset to "" when address bar is clicked.
-        self.blur()
+        return self.blur()
 
     def keypress(self, char: str) -> bool:
         """Handle keypress event. Return True if handled."""
@@ -308,11 +308,13 @@ class Chrome:
 
     def backspace(self) -> bool:
         """Handle pressing BackSpace. Return True if handled."""
-        if self.focused_component == ChromeComponent.ADDRESS_BAR:
-            if len(self.address_input) > 0:
-                # Remove the last character from address input
-                self.address_input = self.address_input[:-1]
-                return True
+        if (
+            self.focused_component == ChromeComponent.ADDRESS_BAR
+            and len(self.address_input) > 0
+        ):
+            # Remove the last character from address input
+            self.address_input = self.address_input[:-1]
+            return True
         return False
 
     def blur(self) -> bool:

@@ -2,11 +2,13 @@ from enum import Enum
 import sdl2
 import skia
 import math
+import threading
 
-from browser.constants import WIDTH, HEIGHT, VSTEP
+from browser.constants import WIDTH, HEIGHT, VSTEP, REFRESH_RATE_SEC
 from browser.url import URL
 from browser.chrome import Chrome
 from browser.tab import Tab
+from browser.tasks import Task
 
 
 class BrowserComponent(Enum):
@@ -62,6 +64,13 @@ class Browser:
         )
         self.tab_surface: skia.Surface | None = None
 
+        self.animation_timer: threading.Timer | None = None
+
+        # dirty flags
+        self.needs_raster_chrome: bool = False
+        self.needs_raster_tab: bool = False
+        self.needs_draw: bool = False
+
     @property
     def active_tab(self) -> Tab:
         if self._active_tab is None:
@@ -74,17 +83,46 @@ class Browser:
 
     def new_tab(self, url: URL) -> None:
         """Create a new tab."""
-        tab_height = HEIGHT - self.chrome.bottom
-        tab = Tab(tab_height)
+        tab = Tab(browser=self, tab_height=HEIGHT - self.chrome.bottom)
         self.tabs.append(tab)
         self._active_tab = tab
         tab.load(url)
 
-        self.raster_chrome()
-        self.raster_tab()
-        self.draw()
+    def schedule_animation_frame(self) -> None:
+        def callback():
+            task = Task(self.active_tab.render)
+            self.active_tab.task_runner.schedule_task(task)
+            self.animation_timer = None
+
+        if not self.animation_timer:
+            self.animation_timer = threading.Timer(REFRESH_RATE_SEC, callback)
+            self.animation_timer.start()
+
+    def set_needs_raster_and_draw(
+        self,
+        needs_raster_chrome: bool = False,
+        needs_raster_tab: bool = False,
+        needs_draw: bool = False,
+    ) -> None:
+        """Only set the corresponding flag if param is True."""
+        self.needs_raster_chrome |= needs_raster_chrome
+        self.needs_raster_tab |= needs_raster_tab
+        self.needs_draw |= needs_draw
+
+    def raster_and_draw(self) -> None:
+        if self.needs_raster_chrome:
+            self.raster_chrome()
+            self.needs_raster_chrome = False
+        if self.needs_raster_tab:
+            self.raster_tab()
+            self.needs_raster_tab = False
+        if self.needs_draw:
+            self.draw()
+            self.needs_draw = False
 
     def draw(self) -> None:
+        """Composite chrome surface and tab surface onto Skia root surface,
+        flush to SDL window surface and update it to reflect new pixels."""
         canvas = self.root_surface.getCanvas()
         canvas.clear(skia.ColorWHITE)
 
@@ -159,23 +197,25 @@ class Browser:
 
     def handle_down(self) -> None:
         if self.active_tab.scroll_down():
-            self.draw()
+            self.set_needs_raster_and_draw(needs_draw=True)
 
     def handle_up(self) -> None:
         if self.active_tab.scroll_up():
-            self.draw()
+            self.set_needs_raster_and_draw(needs_draw=True)
 
     def handle_click(self, x: int, y: int) -> None:
         if y < self.chrome.bottom:
             # Click on the chrome area
             old_url = self.active_tab.url
             self.focused_component = BrowserComponent.CHROME
-            self.chrome.click(x, y)
+            if not self.chrome.click(x, y):
+                return
 
-            self.raster_chrome()
-            if self.active_tab.url != old_url:  # opened new tab
-                self.raster_tab()
-            self.draw()
+            self.set_needs_raster_and_draw(
+                needs_raster_chrome=True,
+                needs_raster_tab=self.active_tab.url != old_url,  # opened new tab
+                needs_draw=True,
+            )
         else:
             # Click on the tab content area
             self.focused_component = BrowserComponent.CONTENT
@@ -183,40 +223,38 @@ class Browser:
 
             old_url = self.active_tab.url
             tab_y = y - self.chrome.bottom
-            tab_clicked_handled = self.active_tab.click(x, tab_y)
+            self.active_tab.click(x, tab_y)
 
             if chrome_blur_handled or self.active_tab.url != old_url:
-                # unfocused a chrome component or clicked a link in content area
-                self.raster_chrome()
-            if tab_clicked_handled:
-                self.raster_tab()
-            self.draw()
+                # unfocused chrome or clicked a link in content area
+                self.set_needs_raster_and_draw(
+                    needs_raster_chrome=True, needs_draw=True
+                )
 
     def handle_key(self, char: str) -> None:
         if self.focused_component == BrowserComponent.CHROME:
             if self.chrome.keypress(char):
-                self.raster_chrome()
-                self.draw()
+                self.set_needs_raster_and_draw(
+                    needs_raster_chrome=True, needs_draw=True
+                )
         elif self.focused_component == BrowserComponent.CONTENT:
-            if self.active_tab.keypress(char):
-                self.raster_tab()
-                self.draw()
+            self.active_tab.keypress(char)
 
     def handle_enter(self) -> None:
-        if self.chrome.enter():
-            self.raster_chrome()
-            self.raster_tab()
-            self.draw()
+        if self.focused_component == BrowserComponent.CHROME:
+            if self.chrome.enter():
+                self.set_needs_raster_and_draw(
+                    needs_raster_chrome=True, needs_draw=True
+                )
 
     def handle_backspace(self) -> None:
         if self.focused_component == BrowserComponent.CHROME:
             if self.chrome.backspace():
-                self.raster_chrome()
-                self.draw()
+                self.set_needs_raster_and_draw(
+                    needs_raster_chrome=True, needs_draw=True
+                )
         elif self.focused_component == BrowserComponent.CONTENT:
-            if self.active_tab.backspace():
-                self.raster_tab()
-                self.draw()
+            self.active_tab.backspace()
 
     def handle_quit(self):
         """Clean up the window object."""

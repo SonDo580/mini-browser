@@ -1,9 +1,13 @@
 # ***** Display *****
 # *******************
-WIDTH, HEIGHT = 800, 600 
+WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
 INPUT_WIDTH_PX = 200
+
+# ***** Render *****
+# ******************
+REFRESH_RATE_SEC = 0.033  # 33ms for each frame (approximately 30 FPS)  
 
 # ***** HTML elements *****
 # *************************
