@@ -176,7 +176,7 @@ class Tab:
         # . content_height = tab_height - padding
         #   max_y = document_height - content_height
         # . If document is shorter than content area,
-        #   scrolling should happen at all -> max_y stays at 0
+        #   scrolling should not happen at all -> max_y stays at 0
         max_y = max(self.document.height + 2 * VSTEP - self.tab_height, 0)
 
         old_scroll = self.scroll
@@ -251,6 +251,7 @@ class Tab:
                     return True  # e.preventDefault() is called in JS
 
                 # Submit the form that contains the button
+                # and navigate to the form's action URL
                 while element:
                     if element.tag == "form" and "action" in element.attributes:
                         self.submit_form(element)
@@ -291,14 +292,14 @@ class Tab:
 
     def go_back(self) -> None:
         """Go back to the previous page."""
-        # Pop the urls before calling 'load', since 'load' adds to history
         if len(self.history) >= 2:
             self.history.pop()
+            # Pop the url before calling load(), since load() adds to history
             previous_url = self.history.pop()
             self.load(previous_url)
 
     def submit_form(self, form: Element) -> None:
-        """Submit the form."""
+        """Submit the form and navigate to action URL."""
         if self.js_context.dispatch_event("submit", form):
             return  # e.preventDefault() is called in JS
 

@@ -33,14 +33,12 @@ class Browser:
         # Define masks that tell SDL which bits correspond to which color channel
         # - Each pixel uses 4 bytes for (R, G, B, A) channels.
         # - The byte order depends on the CPU’s endianness.
-        if sdl2.SDL_BYTEORDER == sdl2.SDL_BIG_ENDIAN:
-            # Big-endian: bytes stored as [RR][GG][BB][AA]
+        if sdl2.SDL_BYTEORDER == sdl2.SDL_BIG_ENDIAN:  # Big-endian
             self.RED_MASK = 0xFF000000
             self.GREEN_MASK = 0x00FF0000
             self.BLUE_MASK = 0x0000FF00
             self.ALPHA_MASK = 0x000000FF
-        else:
-            # Little-endian (most systems): bytes stored as [AA][BB][GG][RR]
+        else:  # Little-endian (most systems)
             self.RED_MASK = 0x000000FF
             self.GREEN_MASK = 0x0000FF00
             self.BLUE_MASK = 0x00FF0000
@@ -97,17 +95,14 @@ class Browser:
             r=WIDTH,
             b=HEIGHT,
         )
-        canvas.save()
-        canvas.clipRect(tab_rect)
+        canvas.save()  # save canvas state before transformations/clips
+        canvas.clipRect(tab_rect)  # limit drawing to a rectangular region
         tab_offset = self.chrome.bottom - self.active_tab.scroll
-        canvas.translate(0, tab_offset)
-        self.tab_surface.draw(canvas, 0, 0)
-        canvas.restore()
-        # - canvas.save(), canvas.restore(): push and pop drawing state
-        #   (prevent clipping/translation from affecting subsequent drawing)
-        # - canvas.clipRect(): limit drawing to a rectangular region
-        #   (the clip boundary stay fixed in device space when coordinate system translates)
-        # - canvas.translate(): shift the coordinate system
+        canvas.translate(0, tab_offset)  # shift the coordinate system
+        self.tab_surface.draw(
+            canvas, 0, 0
+        )  # only pixels in visible portion are rendered
+        canvas.restore()  # remove transformations/clips done to the canvas
 
         # Copy from chrome surface to root surface
         chrome_rect = skia.Rect.MakeLTRB(l=0, t=0, r=WIDTH, b=self.chrome.bottom)
@@ -175,11 +170,10 @@ class Browser:
             # Click on the chrome area
             old_url = self.active_tab.url
             self.focused_component = BrowserComponent.CHROME
-            if not self.chrome.click(x, y):
-                return
+            self.chrome.click(x, y)
 
             self.raster_chrome()
-            if self.active_tab.url != old_url:
+            if self.active_tab.url != old_url:  # opened new tab
                 self.raster_tab()
             self.draw()
         else:
@@ -192,6 +186,7 @@ class Browser:
             tab_clicked_handled = self.active_tab.click(x, tab_y)
 
             if chrome_blur_handled or self.active_tab.url != old_url:
+                # unfocused a chrome component or clicked a link in content area
                 self.raster_chrome()
             if tab_clicked_handled:
                 self.raster_tab()

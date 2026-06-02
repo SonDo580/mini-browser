@@ -50,11 +50,14 @@ def mainloop(browser: Browser):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 2:
+        print("Usage: python -m browser [url]")
+        sys.exit(1)
+    url = sys.argv[1] if len(sys.argv) == 2 else DEFAULT_LINK
+
     sdl2.SDL_Init(sdl2.SDL_INIT_EVENTS)
 
-    url = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_LINK
     url_manager = URL(url)
-
     browser = Browser()
     browser.new_tab(url_manager)
 

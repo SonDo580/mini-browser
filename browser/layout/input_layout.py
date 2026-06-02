@@ -23,11 +23,10 @@ class InputLayout(BaseLayout):
         parent: LineLayout,
         previous: InputLayout | TextLayout | None,
     ):
-        super().__init__()
         self.node: Element = node
         self.parent: LineLayout = parent
         self.previous: InputLayout | TextLayout | None = previous
-        self.children = []  # always empty (only accept simple text for button)
+        self.children = []  # always empty (see text handling in __extract_text())
 
         self.font: skia.Font = get_font_from_css(node)
 
@@ -46,8 +45,8 @@ class InputLayout(BaseLayout):
 
         self._height = linespace(self.font)
 
-        # The y position of input/button depends on the other items in the same line,
-        # so we’ll compute that inside LineLayout’s 'layout' method.
+        # The y position depends on the other items in the same line,
+        # so we’ll compute that inside LineLayout’s layout() method.
 
     def paint(self) -> list[BaseDrawCommand]:
         """Return drawing commands (display list) for this layout."""
@@ -98,12 +97,12 @@ class InputLayout(BaseLayout):
                 return "*" * len(text)  # mask password
             return text
 
+        # Simplification: only accept simple text for button
         if (
             self.node.tag == "button"
             and len(self.node.children) == 1
             and isinstance(self.node.children[0], Text)
         ):
-            # Ignore complex HTML contents inside button to simplify things
             return self.node.children[0].text
 
         return ""

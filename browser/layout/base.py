@@ -15,11 +15,10 @@ class BaseLayout(abc.ABC):
     previous: BaseLayout | None
     children: list[BaseLayout]
 
-    def __init__(self):
-        self._x: float | None = None
-        self._y: float | None = None
-        self._width: float | None = None
-        self._height: float | None = None
+    _x: float | None
+    _y: float | None
+    _width: float | None
+    _height: float | None
 
     @abc.abstractmethod
     def layout(self) -> None:

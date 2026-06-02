@@ -43,7 +43,7 @@ class Chrome:
 
         # Address editing
         self.focused_component: ChromeComponent | None = None
-        self.address_input = ""
+        self.address_input: str = ""
 
         self.bottom = self.url_bar_bottom
 
@@ -259,31 +259,35 @@ class Chrome:
             thickness=1,
         )
 
-    def click(self, x: int, y: int) -> bool:
-        """Handle click events inside the chrome area. Return True if handled."""
+    def click(self, x: int, y: int) -> None:
+        """Handle click events inside the chrome area."""
         if self.new_tab_button_rect.contains(x, y):
             # Create a new tab (with default URL)
             self.browser.new_tab(URL(DEFAULT_LINK))
-            return True
+            return
 
         if self.back_button_rect.contains(x, y):
             # Go back to the previous page
             self.browser.active_tab.go_back()
-            return True
+            return
 
         if self.address_bar_rect.contains(x, y):
             # Focus and clear address bar contents to start editing
             self.focused_component = ChromeComponent.ADDRESS_BAR
             self.address_input = ""
-            return True
+            return
 
         # Switch to the tab being clicked on
         for i, tab in enumerate(self.browser.tabs):
             if self._get_tab_rect(i).contains(x, y):
                 self.browser.set_active_tab(tab)
-                return True
+                return
 
-        return False
+        # Clicked on empty area -> blur address bar
+        # - don't have to restore address input,
+        #   since url is shown if address bar is not focused,
+        #   and address input is reset to "" when address bar is clicked.
+        self.blur()
 
     def keypress(self, char: str) -> bool:
         """Handle keypress event. Return True if handled."""

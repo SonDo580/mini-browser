@@ -47,7 +47,9 @@ class LineLayout(BaseLayout):
         for child_layout in self.children:
             child_layout.layout()
 
-        # Note that Skia font's ascent and descent are positive if they go downward and negative if they go upward
+        # Skia font's ascent and descent:
+        # - ascent: goes upward from baseline, negative value. 
+        # - descent: goes downward from baseline, positive value.
 
         # Find the highest (most negative) ascent
         min_ascent = min([ascent(child_layout.font) for child_layout in self.children])
@@ -59,8 +61,8 @@ class LineLayout(BaseLayout):
         for child_layout in self.children:
             child_layout.set_y(baseline + ascent(child_layout.font))
 
-        # Compute line's height as max_descent - min_ascent
-        # (multiplied with a factor to add space between lines)
+        # Compute line's height as (max_descent - min_ascent),
+        # multiplied with a factor to add space between lines
         max_descent = max(
             [descent(child_layout.font) for child_layout in self.children]
         )

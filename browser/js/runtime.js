@@ -8,7 +8,7 @@
 - DukPy does not implement newer syntax like 'let', 'const', arrow functions, etc
   -> use "old-school" JS
 - JS cannot directly access Python objects
-  -> use handles.
+  -> use handles
 */
 
 // ===== Node =====

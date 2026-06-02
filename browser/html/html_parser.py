@@ -1,5 +1,3 @@
-from typing import Literal
-
 from browser.constants import SELF_CLOSING_TAGS, HEAD_TAGS
 from browser.html.nodes import Element, Text
 
@@ -125,7 +123,7 @@ class HTMLParser:
                 key, value = attribute.split("=", 1)
 
                 # Remove surrounding quotes from the value if present
-                if len(value) > 2 and value[0] in ["'", '"']:
+                if len(value) >= 2 and value[0] in ["'", '"'] and value[0] == value[-1]:
                     value = value[1:-1]
             else:
                 # Attribute without value (e.g. disabled, checked)

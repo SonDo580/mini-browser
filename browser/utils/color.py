@@ -156,7 +156,7 @@ COLOR_HEX = {
 
 
 def parse_color(color: str) -> skia.Color:
-    """Convert a CSS color string into a Skia Color object."""
+    """Convert CSS color string to skia.Color object."""
     color = color.lower()
 
     if color == "transparent":

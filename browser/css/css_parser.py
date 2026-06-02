@@ -1,12 +1,7 @@
 from browser.css.selectors import TagSelector, DescendantSelector
 
-# (selector, property-value pairs)
+# (selector, property-value) pairs
 CSSRule = tuple[TagSelector | DescendantSelector, dict[str, str]]
-
-
-class ParsingError(Exception):
-    def __init__(self, *args):
-        super().__init__(*args)
 
 
 class CSSParser:
@@ -21,7 +16,10 @@ class CSSParser:
             self.i += 1
 
     def __read_word(self) -> str:
-        """Read a "word" token (tag names, properties, values)."""
+        """
+        Read a "word" token (tag name / property / value).
+        Raise error if fail to parse a word.
+        """
         start = self.i
         while self.i < len(self.source):
             if self.source[self.i].isalnum() or self.source[self.i] in "#-.%":
@@ -34,10 +32,7 @@ class CSSParser:
         return self.source[start : self.i]
 
     def __consume(self, char: str) -> None:
-        """
-        Consume a required character.
-        Raise error if current character doesn't match.
-        """
+        """Match the specified character. Raise error if not match."""
         if not (self.i < len(self.source) and self.source[self.i] == char):
             raise Exception("Parsing error")
         self.i += 1
@@ -57,7 +52,6 @@ class CSSParser:
 
     # ---------- Parse CSS components ----------
     # ------------------------------------------
-
     def __parse_prop_val(self) -> tuple[str, str]:
         """
         Parse a property-value pair. Example: 'color: red'.

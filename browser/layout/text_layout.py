@@ -47,8 +47,8 @@ class TextLayout(BaseLayout):
 
         self._height = linespace(self.font)
 
-        # The y position of a word depends on the other items in the same line,
-        # so we’ll compute that inside LineLayout’s 'layout' method.
+        # The y position depends on the other items in the same line,
+        # so we’ll compute that inside LineLayout’s layout() method.
 
     def paint(self) -> list[BaseDrawCommand]:
         """Return drawing commands (display list) for this layout."""

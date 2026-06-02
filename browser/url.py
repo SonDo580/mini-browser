@@ -142,7 +142,7 @@ class URL:
     ) -> bool:
         """Determine whether cookie should be sent with current request."""
         # Only send cookies with SameSite=Lax if:
-        # - the method is GET (clicking a link).
+        # - the method is GET (type in address bar OR click a link).
         # - OR the new URL and the top-level URL have the same host.
         if cookie_attributes.get("samesite", "none") == "lax" and method != "GET":
             return self.host == referrer.host
@@ -179,6 +179,7 @@ class URL:
                     dir, _ = dir.rsplit("/", 1)
 
             url = f"{dir}/{url}"
+            # fallthrough to case 4
 
         # Case 4: Host-relative path (or resolved path from case 3)
         # (ex) "/base.css" -> "https://example.com:8080/base.css"

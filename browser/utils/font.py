@@ -10,7 +10,7 @@ TStyle = Literal["roman", "italic"]
 # Cache loaded typefaces: (weight, style) -> skia.Typeface
 TYPEFACES: dict[tuple[TWeight, TStyle], skia.Typeface] = {}
 
-# Map weight/style literals to Skia constants
+# Map weight/style literals to skia.FontStyle constants
 WEIGHT_MAP = {
     "normal": skia.FontStyle.kNormal_Weight,
     "bold": skia.FontStyle.kBold_Weight,
@@ -64,18 +64,16 @@ def get_font_from_css(node: Element) -> skia.Font:
 
 # ===== Utility functions for working with Skia font metrics =====
 def ascent(font: skia.Font) -> float:
-    """Return the font ascent (distance from baseline to top of text)."""
+    """Return the font ascent (negative, baseline to top of text)."""
     return font.getMetrics().fAscent
 
 
 def descent(font: skia.Font) -> float:
-    """Return the font descent (distance from baseline to bottom of text)."""
+    """Return the font descent (positive, baseline to bottom of text)."""
     return font.getMetrics().fDescent
 
 
 def linespace(font: skia.Font) -> float:
     """Return total line height (distance from top to bottom of a line)."""
-    # Skia font's ascent and descent are positive if they go downward and negative if they go upward
-    # -> negate ascent value when computing linespace
     metrics = font.getMetrics()
-    return metrics.fDescent - metrics.fAscent
+    return metrics.fDescent - metrics.fAscent # negate negative ascent value

@@ -14,6 +14,7 @@ if __name__ == "__main__":
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     # Accept connections from anywhere on port 8000
+    # (address = "" <-> all available network interfaces)
     PORT = 8000
     s.bind(("", PORT))
 

@@ -1,8 +1,8 @@
 # Mini browser
 
-Develop a simple web browser
+A simple web browser
 
-## Learning material
+## Book
 
 [Web Browser Engineering](https://browser.engineering/)
 
@@ -21,7 +21,7 @@ pip install -r requirements.txt
 
 ## Installation notes
 
-This project depends on **Skia** (for 2D graphics rendering) and **SDL2** (for window management and input handling). These libraries may require system-level dependencies.
+This project depends on **Skia** _(for 2D graphics rendering)_ and **SDL2** _(for window management and input handling)_. These libraries may require system-level dependencies.
 
 Consult the [skia-python](https://pypi.org/project/skia-python/) and [pysdl2](https://pysdl2.readthedocs.io/en/latest/install.html) web pages for more details.
 
@@ -65,5 +65,14 @@ python -m browser http://localhost:8000
 }
 ```
 
-## Self-implemented:
-(check commits with `extension` keyword)
+## My extensions
+
+- **project structure**: not officially provided by the authors, just try to use a "reasonable" organization.
+- **user interactions**:
+  - scroll up with `arrow up` key.
+  - allow deleting characters when editing tab url & form input.
+- **CSS**:
+  - transparency & more color formats.
+- **render & display**:
+  - hidden input & password masking.
+  - draw rounded rectangle.

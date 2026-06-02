@@ -112,6 +112,7 @@ def login_form() -> str:
 
     return out
 
+
 def do_login(session: dict[str, Any], params: dict[str, str]) -> tuple[str, str]:
     """Handle login. Return status and response body."""
     username = params.get("username")

@@ -72,7 +72,11 @@ class JSContext:
         Ask JS to dispatch an event for the given element.
         Return True if default action is prevented, False otherwise.
         """
-        handle = self.node_to_handle.get(element, -1)
+        if element not in self.node_to_handle:
+            # element is not tracked by JS -> no event listeners -> cannot prevent default action
+            return False
+
+        handle = self.node_to_handle[element]
         do_default = self.interpreter.evaljs(
             code=EVENT_DISPATCH_JS, type=event_type, handle=handle
         )
@@ -153,6 +157,10 @@ class JSContext:
             response_headers, response_body = full_url.request(
                 referrer=self.tab.url, payload=body
             )
+
+            # JS engine is single-threaded
+            # -> Don't call evaljs() directly from background thread.
+            #    Schedule a task to be executed later by the main thread
             task = Task(self.__dispatch_xhr_onload, response_body, handle)
             self.tab.task_runner.schedule_task(task)
 
@@ -178,6 +186,7 @@ class JSContext:
         """Schedule a JS setTimeout callback."""
 
         def __run_callback() -> None:
+            # Don't call evaljs() directly
             task = Task(self.__dispatch_settimeout, handle)
             self.tab.task_runner.schedule_task(task)
 

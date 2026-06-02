@@ -16,9 +16,9 @@ def paint_visual_effects(
     # Handle "overflow: clip"
     # - Create a new surface and draw a rounded rectangle mask.
     #   The mask color doesn't matter as long as it's opaque.
-    # - Blend using destination-in mode to keep only destination content inside the shape.
-    #   + Content outside mask -> multiplied by alpha 0 -> becomes transparent.
-    #   + Content inside mask -> multiplied by alpha 1 -> stays visible.
+    # - 'destination-in' blend mode:
+    #   . Content outside mask becomes transparent.
+    #   . Content inside mask stays visible.
     if node.style.get("overflow", "visible") == "clip":
         radius = float(node.style.get("border-radius", "0px")[:-2])
         commands.append(
@@ -29,8 +29,9 @@ def paint_visual_effects(
             )
         )
 
-        # Blend operation also isolates element contents
-        # -> always set blend mode if we need clipping
+        # Force the outer Blend command to allocate an isolated surface for element contents.
+        # - Without this, the 'destination-in' mask would execute directly on the current surface,
+        #   clearing out content outside the clipping bounds instead of just cropping this element.
         if not blend_mode:
             blend_mode = "source-over"
 

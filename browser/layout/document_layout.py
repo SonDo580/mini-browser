@@ -9,7 +9,6 @@ class DocumentLayout(BaseLayout):
     """Represent the root of the layout tree"""
 
     def __init__(self, html_root: Element):
-        super().__init__()
         self.node = html_root
         self.parent = None
         self.previous = None
@@ -25,7 +24,7 @@ class DocumentLayout(BaseLayout):
         self.children.append(child_layout)
         child_layout.layout()
 
-        # Compute document's height after child's 'layout' call
+        # Compute document's height after child's layout() call
         self._height = child_layout.height
 
     def paint(self) -> list[BaseDrawCommand]:

@@ -32,7 +32,6 @@ class BlockLayout(BaseLayout):
         parent: DocumentLayout | BlockLayout,
         previous: BlockLayout | None,
     ):
-        super().__init__()
         self.node: Text | Element = node
         self.parent: DocumentLayout | BlockLayout = parent
         self.previous: BlockLayout | None = previous
@@ -86,7 +85,7 @@ class BlockLayout(BaseLayout):
         if isinstance(self.node, Text):
             return LayoutMode.INLINE
 
-        # Element node with any block-element child -> block
+        # Element with any block-element child -> block
         if any(
             [
                 isinstance(child, Element) and child.tag in BLOCK_ELEMENTS
@@ -95,12 +94,12 @@ class BlockLayout(BaseLayout):
         ):
             return LayoutMode.BLOCK
 
-        # Element node with children but none of them are block elements -> inline
+        # Element with children but none of them are block elements -> inline
         # Special case: input element -> inline
         if self.node.children or self.node.tag == "input":
             return LayoutMode.INLINE
 
-        # Element node without children (except input) -> block
+        # Element without children and is not input -> block
         return LayoutMode.BLOCK
 
     def recurse(self, node: Text | Element) -> None:
@@ -120,12 +119,8 @@ class BlockLayout(BaseLayout):
     def new_line(self) -> None:
         """Start a new LineLayout."""
         self.cursor_x = 0
-        previous_line_layout: LineLayout | None = (
-            self.children[-1] if self.children else None
-        )
-        line_layout = LineLayout(
-            node=self.node, parent=self, previous=previous_line_layout
-        )
+        previous: LineLayout | None = self.children[-1] if self.children else None
+        line_layout = LineLayout(node=self.node, parent=self, previous=previous)
         self.children.append(line_layout)
 
     def handle_word(self, node: Text, word: str) -> None:
@@ -142,9 +137,9 @@ class BlockLayout(BaseLayout):
 
         # Create a TextLayout and place it in the current line
         line_layout: LineLayout = self.children[-1]
-        previous_layout = line_layout.children[-1] if line_layout.children else None
+        previous = line_layout.children[-1] if line_layout.children else None
         text_layout = TextLayout(
-            node, word, font, parent=line_layout, previous=previous_layout
+            node, word, font, parent=line_layout, previous=previous
         )
         line_layout.children.append(text_layout)
 
@@ -165,8 +160,8 @@ class BlockLayout(BaseLayout):
 
         # Create an InputLayout and place it in the current line
         line_layout: LineLayout = self.children[-1]
-        previous_layout = line_layout.children[-1] if line_layout.children else None
-        input_layout = InputLayout(node, parent=line_layout, previous=previous_layout)
+        previous = line_layout.children[-1] if line_layout.children else None
+        input_layout = InputLayout(node, parent=line_layout, previous=previous)
         line_layout.children.append(input_layout)
 
         # Update horizontal position for the next item
