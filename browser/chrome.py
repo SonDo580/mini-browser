@@ -8,6 +8,7 @@ from browser.url import URL
 from browser.render.base import BaseDrawCommand
 from browser.render.draw_commands import DrawOutline, DrawText, DrawLine, DrawRect
 from browser.utils.font import get_font, linespace
+from browser.tasks import Task
 
 if TYPE_CHECKING:
     from browser.browser import Browser
@@ -231,12 +232,11 @@ class Chrome:
         return commands
 
     def _paint_address_text(self) -> DrawText:
-        # Show current url by default
-        text = str(self.browser.active_tab.url)
-
+        text = "Loading..."
+        if self.browser.active_tab_url:
+            text = str(self.browser.active_tab_url)
         if self.focused_component == ChromeComponent.ADDRESS_BAR:
-            # Show user input in editing mode
-            text = self.address_input
+            text = self.address_input # editing mode
 
         return DrawText(
             left=self.address_bar_rect.left() + self.padding,
@@ -262,13 +262,17 @@ class Chrome:
     def click(self, x: int, y: int) -> bool:
         """Handle click events inside the chrome area. Return True if handled."""
         if self.new_tab_button_rect.contains(x, y):
-            # Create a new tab (with default URL)
-            self.browser.new_tab(URL(DEFAULT_LINK))
+            self.blur()
+            # Create a new tab with default URL
+            # (already hold the lock -> use internal method method)
+            self.browser.new_tab_internal(URL(DEFAULT_LINK))
             return True
 
         if self.back_button_rect.contains(x, y):
+            self.blur()
             # Go back to the previous page
-            self.browser.active_tab.go_back()
+            task = Task(self.browser.active_tab.go_back)
+            self.browser.active_tab.task_runner.schedule_task(task) 
             return True
 
         if self.address_bar_rect.contains(x, y):
@@ -280,13 +284,13 @@ class Chrome:
         # Switch to the tab being clicked on
         for i, tab in enumerate(self.browser.tabs):
             if self._get_tab_rect(i).contains(x, y):
+                self.blur()
                 self.browser.set_active_tab(tab)
+                task = Task(self.browser.active_tab.set_needs_render)
+                self.browser.active_tab.task_runner.schedule_task(task)
                 return True
 
-        # Clicked on empty area -> blur address bar
-        # - don't have to restore address input,
-        #   since url is shown if address bar is not focused,
-        #   and address input is reset to "" when address bar is clicked.
+        # Clicked on empty area
         return self.blur()
 
     def keypress(self, char: str) -> bool:
@@ -301,7 +305,7 @@ class Chrome:
         """Handle pressing Enter. Return True if handled."""
         if self.focused_component == ChromeComponent.ADDRESS_BAR:
             # Go to the new address
-            self.browser.active_tab.load(URL(self.address_input))
+            self.browser.schedule_load(URL(self.address_input))
             self.focused_component = None
             return True
         return False

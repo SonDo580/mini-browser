@@ -45,8 +45,7 @@ def mainloop(browser: Browser):
             elif event.type == sdl2.SDL_TEXTINPUT:
                 browser.handle_key(event.text.text.decode("utf8"))
 
-        browser.active_tab.task_runner.run()  # Run 1 scheduled task
-        browser.raster_and_draw()  # only when dirty flag is set
+        browser.raster_and_draw()
         browser.schedule_animation_frame()
 
 

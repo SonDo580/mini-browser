@@ -1,9 +1,8 @@
 from __future__ import annotations
-import skia
 import urllib.parse
 from typing import TYPE_CHECKING
 
-from browser.constants import VSTEP, SCROLL_STEP
+from browser.constants import VSTEP
 from browser.url import URL
 from browser.html.html_parser import HTMLParser
 from browser.html.nodes import Element, Text
@@ -22,33 +21,53 @@ if TYPE_CHECKING:
     from browser.browser import Browser
 
 
+class CommitData:
+    """Data needed for raster and draw."""
+
+    def __init__(
+        self,
+        url: URL,
+        scroll: float | None,
+        height: float,
+        display_list: list[BaseDrawCommand],
+    ):
+        self.url = url
+        self.scroll = scroll
+        self.height = height
+        self.display_list = display_list
+
+
 class Tab:
     def __init__(self, browser: Browser, tab_height: float):
         self._url: URL | None = None
-        self.history: list[URL] = []  # track visited pages
+        self.history: list[URL] = []  # visited pages
         self.js_context: JSContext | None = None
-        self.task_runner = TaskRunner(self)
-        self.allowed_origins: list[str] | None = None  # None means allow all
+        self.allowed_origins: list[str] | None = None  # None <-> allow all
         self.browser = browser
 
-        self.tab_height = tab_height  # visible content's height
+        self.tab_height = tab_height  # portion on screen
         self._document: DocumentLayout | None = None
-        self.scroll: float = 0
         self.display_list: list[BaseDrawCommand] = []
         self.focused_element: Element | None = None
+        self.scroll: float = 0
+
+        self.scroll_changed_in_tab: bool = False
         self.needs_render: bool = False
+
+        self.task_runner = TaskRunner(tab=self)
+        self.task_runner.start_thread()
 
     @property
     def document(self) -> DocumentLayout:
         """Return the Document layout."""
-        if self._document is None:
+        if not self._document:
             raise Exception("Document has not been initialized. Call load() first.")
         return self._document
 
     @property
     def url(self) -> URL:
         """Return the URL manager."""
-        if self._url is None:
+        if not self._url:
             raise Exception("URL manager has not been initialized. Call load() first.")
         return self._url
 
@@ -59,6 +78,7 @@ class Tab:
 
         # Start at the top when navigating to a new page
         self.scroll = 0
+        self.scroll_changed_in_tab = True
 
         # ===== HTML =====
         # ================
@@ -152,16 +172,41 @@ class Tab:
             task = Task(self.js_context.run, script_src, js_body)
             self.task_runner.schedule_task(task)
 
-        # ===== Rendering =====
         self.set_needs_render()
+
+    def clamp_scroll(self, scroll: float) -> float:
+        """Restrict scroll offset between 0 and max_scroll."""
+        content_height = self.tab_height - 2 * VSTEP
+        max_scroll = self.document.height - content_height
+        return max(0, min(scroll, max_scroll))
+
+    def run_animation_frame(self, scroll: float):
+        if not self.scroll_changed_in_tab:
+            self.scroll = scroll  # scroll offset calculated by browser thread
+
+        # Run callbacks requested by requestAnimationFrame()
+        self.js_context.interpreter.evaljs("__runRAFHandlers()")
+
+        # Render
+        self.render()
+
+        # May override scroll offset calculated by browser thread
+        scroll = self.scroll if self.scroll_changed_in_tab else None
+
+        # Commit
+        commit_data = CommitData(
+            url=self.url,
+            scroll=scroll,
+            height=self.document.height,
+            display_list=self.display_list,
+        )
+        self.browser.commit(tab=self, data=commit_data)
+        self.scroll_changed_in_tab = False
 
     def render(self) -> None:
         """Apply style and layout the document."""
         if not self.needs_render:
             return
-
-        # Reset display list before re-rendering
-        self.display_list = []
 
         # Apply style rules to the HTML tree
         style(self.html_tree, self.sorted_css_rules)
@@ -171,44 +216,20 @@ class Tab:
         self.document.layout()
 
         # Collect draw commands (display list)
+        self.display_list = []  # reset
         paint_tree(self.document, self.display_list)
 
         self.needs_render = False
-        self.browser.set_needs_raster_and_draw(
-            needs_raster_chrome=True, needs_raster_tab=True, needs_draw=True
-        )
 
-    def raster(self, canvas: skia.Canvas) -> None:
-        """Draw the whole tab onto the canvas."""
-        for draw_command in self.display_list:
-            draw_command.execute(canvas)
+        # May override scroll offset calculated by browser thread
+        clamped_scroll = self.clamp_scroll(self.scroll)
+        if clamped_scroll != self.scroll:
+            self.scroll_changed_in_tab = True
+        self.scroll = clamped_scroll
 
     def set_needs_render(self) -> None:
         self.needs_render = True
-
-    def scroll_down(self) -> bool:
-        """
-        Scroll downward without exceeding document's height.
-        Return True if scroll value changed.
-        """
-        # . content_height = tab_height - padding
-        #   max_y = document_height - content_height
-        # . If document is shorter than content area,
-        #   scrolling should not happen at all -> max_y stays at 0
-        max_y = max(self.document.height + 2 * VSTEP - self.tab_height, 0)
-
-        old_scroll = self.scroll
-        self.scroll = min(self.scroll + SCROLL_STEP, max_y)
-        return self.scroll != old_scroll
-
-    def scroll_up(self) -> bool:
-        """
-        Scroll upward without passing the top of the document.
-        Return True if scroll value changed.
-        """
-        old_scroll = self.scroll
-        self.scroll = max(self.scroll - SCROLL_STEP, 0)
-        return self.scroll != old_scroll
+        self.browser.set_needs_animation_frame(tab=self)
 
     def click(self, x: int, tab_y: int) -> None:
         """Handle click events inside the tab content area."""

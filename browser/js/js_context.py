@@ -52,6 +52,9 @@ class JSContext:
             "XMLHttpRequest_send", self.__xml_http_request_send
         )
         self.interpreter.export_function("setTimeout", self.__set_timeout)
+        self.interpreter.export_function(
+            "requestAnimationFrame", self.__request_animation_frame
+        )
 
         # Execute JS runtime code before any user code
         self.interpreter.evaljs(RUNTIME_JS)
@@ -191,3 +194,6 @@ class JSContext:
             self.tab.task_runner.schedule_task(task)
 
         threading.Timer(delay_ms / 1000.0, __run_callback).start()
+
+    def __request_animation_frame(self) -> None:
+        self.tab.browser.set_needs_animation_frame(self.tab)

@@ -23,7 +23,7 @@ Node.prototype.getAttribute = function (attribute) {
 Object.defineProperty(Node.prototype, "innerHTML", {
   set: function (s) {
     call_python("innerHTML_set", this.handle, s.toString());
-  },
+  }
 });
 
 // ===== Event handling =====
@@ -67,7 +67,7 @@ Node.prototype.dispatchEvent = function (event) {
 console = {
   log: function (x) {
     call_python("print", x);
-  },
+  }
 };
 
 document = {
@@ -76,7 +76,7 @@ document = {
     return handles.map(function (handle) {
       return new Node(handle);
     });
-  },
+  }
 };
 
 // ===== XMLHttpRequest =====
@@ -127,4 +127,27 @@ function setTimeout(callback, time_delta) {
 function __runSetTimeout(handle) {
   var callback = SET_TIMEOUT_REQUESTS[handle];
   callback();
+}
+
+// ===== Animation frame =====
+RAF_LISTENERS = [];
+
+/*
+Schedule a rendering task;
+Ask browser to call 'fn' at the beginning of that rendering task.
+*/
+function requestAnimationFrame(fn) {
+  RAF_LISTENERS.push(fn);
+  call_python("requestAnimationFrame");
+}
+
+function __runRAFHandlers() {
+  // The callbacks can also call requestAnimationFrame()
+  // -> Reset RAF_LISTENERS to [] before running callbacks
+  //    to store callbacks for the next frame separately.
+  var handlers_copy = RAF_LISTENERS;
+  RAF_LISTENERS = [];
+  for (var i = 0; i < handlers_copy.length; i++) {
+    handlers_copy[i]();
+  }
 }

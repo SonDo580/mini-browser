@@ -46,6 +46,9 @@ def handle_request(
     if method == "GET" and url_path.startswith("/static/"):
         return serve_static(url_path)
 
+    if method == "GET" and url_path == "/count":
+        return "200 OK", show_count()
+
     return not_found(url_path, method)
 
 
@@ -68,7 +71,7 @@ def login_form() -> str:
     <p>Password: <input name=password type=password></p>
     <p><button>Log in</button></p>
 </form>
-""" 
+"""
 
     # Test transparency
     out += """
@@ -108,7 +111,7 @@ def login_form() -> str:
 </div>
 """
 
-    out += """<script src="/static/test1.js"></script>"""
+    out += """<script src="/static/xhr.js"></script>"""
 
     return out
 
@@ -165,7 +168,7 @@ def show_guestbook(session: dict[str, Any]) -> str:
     for comment, person in ENTRIES:
         output += f"""<p>{html.escape(comment)}
 <i>by {html.escape(person)}</i></p>"""
-        
+
     output += """<script src="/static/test.js"></script>"""
 
     # Test Content Security Policy
@@ -201,3 +204,12 @@ def not_found(url_path: str, method: str) -> tuple[str, str]:
 <h1>{method} {url_path} not found!</h1>
 """,
     )
+
+
+def show_count():
+    return """
+<!DOCTYPE html>
+<div>Let's count up to 99!</div>
+<div>Output</div>
+<script src=/static/raf.js></script>
+"""

@@ -37,21 +37,57 @@ class TaskRunner:
         # - A wait/notify mechanism so threads can sleep until new tasks arrive
         self.condition = threading.Condition()
 
+        self.main_thread = threading.Thread(
+            target=self.run,
+            name="Main thread",
+        )
+        self.needs_quit: bool = False
+
     def schedule_task(self, task: Task):
-        """Add a task to the queue for later execution."""
+        """Add a task to the queue."""
         self.condition.acquire(blocking=True)
         self.tasks.append(task)
         self.condition.notify_all()  # Wake up waiting threads
         self.condition.release()
 
-    def run(self):
-        """Execute the next scheduled task."""
-        task: Task | None = None
+    def set_needs_quit(self):
         self.condition.acquire(blocking=True)
+        self.needs_quit = True
+        self.condition.notify_all()  # Wake up waiting threads
+        self.condition.release()
 
-        if len(self.tasks) > 0:
-            task = self.tasks.popleft()
+    def clear_pending_tasks(self):
+        """Used before loading new page."""
+        self.condition.acquire(blocking=True)
+        self.tasks.clear()
+        self.condition.release()
 
-        self.condition.release()  # Release lock before running task
-        if task:
-            task.run()
+    def start_thread(self):
+        self.main_thread.start()
+
+    def run(self):
+        """Continuously check and execute scheduled tasks."""
+        while True:
+            self.condition.acquire(blocking=True)
+            needs_quit = self.needs_quit
+            self.condition.release()
+            if needs_quit:
+                return
+
+            # Execute scheduled task
+            task: Task | None = None
+            self.condition.acquire(blocking=True)
+            if len(self.tasks) > 0:
+                task = self.tasks.popleft()
+            self.condition.release()
+            if task:
+                task.run()
+
+            # Wait if there's nothing left to do
+            # (otherwise the thread will use up a lot of the CPU,
+            #  plus constantly acquire and release condition)
+            self.condition.acquire(blocking=True)
+            if len(self.tasks) == 0 and not self.needs_quit:
+                self.condition.wait()  # wait & release the lock
+                # wake up & re-acquire the lock
+            self.condition.release()
