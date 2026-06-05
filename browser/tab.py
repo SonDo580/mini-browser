@@ -1,6 +1,7 @@
 from __future__ import annotations
 import urllib.parse
 from typing import TYPE_CHECKING
+import math
 
 from browser.constants import VSTEP
 from browser.url import URL
@@ -28,7 +29,7 @@ class CommitData:
         self,
         url: URL,
         scroll: float | None,
-        height: float,
+        height: int,
         display_list: list[BaseDrawCommand],
     ):
         self.url = url
@@ -176,9 +177,14 @@ class Tab:
 
     def clamp_scroll(self, scroll: float) -> float:
         """Restrict scroll offset between 0 and max_scroll."""
-        content_height = self.tab_height - 2 * VSTEP
-        max_scroll = self.document.height - content_height
+        padded_height = math.ceil(self.document.height + 2*VSTEP) 
+        max_scroll = padded_height - self.tab_height
         return max(0, min(scroll, max_scroll))
+        # Intuition:
+        # - Treat (content + padding) as a single entity to scroll.
+        # - Every time we scroll, imagine the 2 padding chunks moving just like normal content. 
+        #   But then they slide back to 2 ends of visible area,
+        #   and adjacent content chunks move in opposite direction to fill the slots.
 
     def run_animation_frame(self, scroll: float):
         if not self.scroll_changed_in_tab:
@@ -190,17 +196,17 @@ class Tab:
         # Render
         self.render()
 
-        # May override scroll offset calculated by browser thread
-        scroll = self.scroll if self.scroll_changed_in_tab else None
-
         # Commit
+        scroll = self.scroll if self.scroll_changed_in_tab else None
+        padded_height = math.ceil(self.document.height + 2*VSTEP)
         commit_data = CommitData(
             url=self.url,
             scroll=scroll,
-            height=self.document.height,
+            height=padded_height,
             display_list=self.display_list,
         )
         self.browser.commit(tab=self, data=commit_data)
+
         self.scroll_changed_in_tab = False
 
     def render(self):

@@ -70,7 +70,7 @@ class Browser:
         self._active_tab: Tab | None = None
         self.active_tab_url: URL | None = None
         self.active_tab_scroll: float = 0
-        self.active_tab_height: float = 0
+        self.active_tab_height: int = 0
         self.active_tab_display_list: list[BaseDrawCommand] = []
 
         self.focused_component: BrowserComponent | None = None
@@ -178,7 +178,7 @@ class Browser:
 
         # Create the surface if none exists or document height has changed
         if not self.tab_surface or self.active_tab_height != self.tab_surface.height():
-            self.tab_surface = skia.Surface(WIDTH, math.ceil(self.active_tab_height))
+            self.tab_surface = skia.Surface(WIDTH, self.active_tab_height)
 
         canvas = self.tab_surface.getCanvas()
         canvas.clear(skia.ColorWHITE)
