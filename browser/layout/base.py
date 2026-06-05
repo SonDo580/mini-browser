@@ -21,7 +21,7 @@ class BaseLayout(abc.ABC):
     _height: float | None
 
     @abc.abstractmethod
-    def layout(self) -> None:
+    def layout(self):
         """Compute display info and recursively layout children."""
         ...
 

@@ -14,7 +14,7 @@ class DocumentLayout(BaseLayout):
         self.previous = None
         self.children: list[BlockLayout] = []
 
-    def layout(self) -> None:
+    def layout(self):
         """Compute display info and recursively layout children."""
         self._x = HSTEP
         self._y = VSTEP

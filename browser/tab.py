@@ -71,7 +71,7 @@ class Tab:
             raise Exception("URL manager has not been initialized. Call load() first.")
         return self._url
 
-    def load(self, url: URL, payload: str | None = None) -> None:
+    def load(self, url: URL, payload: str | None = None):
         """Fetch and display content from the given URL."""
         self._url = url
         self.history.append(url)  # record visited page
@@ -203,7 +203,7 @@ class Tab:
         self.browser.commit(tab=self, data=commit_data)
         self.scroll_changed_in_tab = False
 
-    def render(self) -> None:
+    def render(self):
         """Apply style and layout the document."""
         if not self.needs_render:
             return
@@ -227,11 +227,11 @@ class Tab:
             self.scroll_changed_in_tab = True
         self.scroll = clamped_scroll
 
-    def set_needs_render(self) -> None:
+    def set_needs_render(self):
         self.needs_render = True
         self.browser.set_needs_animation_frame(tab=self)
 
-    def click(self, x: int, tab_y: int) -> None:
+    def click(self, x: int, tab_y: int):
         """Handle click events inside the tab content area."""
         # Ensure the layout tree is up to date
         self.render()
@@ -301,7 +301,7 @@ class Tab:
 
             element = element.parent
 
-    def keypress(self, char: str) -> None:
+    def keypress(self, char: str):
         """Handle keypress event."""
         if self.focused_element and self.focused_element.tag == "input":
             if self.js_context.dispatch_event("keydown", self.focused_element):
@@ -311,7 +311,7 @@ class Tab:
             self.focused_element.attributes["value"] += char
             self.set_needs_render()
 
-    def backspace(self) -> None:
+    def backspace(self):
         """Handle pressing BackSpace."""
         if self.focused_element and self.focused_element.tag == "input":
             if self.js_context.dispatch_event("keydown", self.focused_element):
@@ -322,7 +322,7 @@ class Tab:
             self.focused_element.attributes["value"] = new_value
             self.set_needs_render()
 
-    def go_back(self) -> None:
+    def go_back(self):
         """Go back to the previous page."""
         if len(self.history) >= 2:
             self.history.pop()
@@ -330,7 +330,7 @@ class Tab:
             previous_url = self.history.pop()
             self.load(previous_url)
 
-    def submit_form(self, form: Element) -> None:
+    def submit_form(self, form: Element):
         """Submit the form and navigate to action URL."""
         if self.js_context.dispatch_event("submit", form):
             return  # e.preventDefault() is called in JS

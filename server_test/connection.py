@@ -9,7 +9,7 @@ from server_test.utils import generate_token
 SESSIONS: dict[str, dict[str, Any]] = {}
 
 
-def handle_connection(connection: socket.socket) -> None:
+def handle_connection(connection: socket.socket):
     """Handle an individual client connection."""
     request: io.BufferedReader = connection.makefile("b")
 

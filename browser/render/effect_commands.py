@@ -19,7 +19,7 @@ class Blend(BaseDrawCommand):
         for command in commands:
             self.rect.join(command.rect)
 
-    def execute(self, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas):
         need_extra_layer = self.blend_mode is not None or self.opacity < 1
 
         if need_extra_layer:

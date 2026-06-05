@@ -11,7 +11,7 @@ class CSSParser:
 
     # ---------- Utilities ----------
     # -------------------------------
-    def __skip_whitespace(self) -> None:
+    def __skip_whitespace(self):
         while self.i < len(self.source) and self.source[self.i].isspace():
             self.i += 1
 
@@ -31,7 +31,7 @@ class CSSParser:
             raise Exception("Parsing error")
         return self.source[start : self.i]
 
-    def __consume(self, char: str) -> None:
+    def __consume(self, char: str):
         """Match the specified character. Raise error if not match."""
         if not (self.i < len(self.source) and self.source[self.i] == char):
             raise Exception("Parsing error")

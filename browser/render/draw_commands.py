@@ -18,7 +18,7 @@ class DrawText(BaseDrawCommand):
         self.font = font
         self.color = color
 
-    def execute(self, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas):
         paint = skia.Paint(
             AntiAlias=True,  # draw some semi-transparent pixels to better approximate the shape of the text
             Color=parse_color(self.color),
@@ -34,7 +34,7 @@ class DrawRect(BaseDrawCommand):
         self.rect = rect
         self.color = color
 
-    def execute(self, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas):
         paint = skia.Paint(Color=parse_color(self.color))
         canvas.drawRect(self.rect, paint)
 
@@ -47,7 +47,7 @@ class DrawRoundedRect(BaseDrawCommand):
         self.rounded_rect = skia.RRect.MakeRectXY(rect, radius, radius)
         self.color = color
 
-    def execute(self, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas):
         paint = skia.Paint(Color=parse_color(self.color))
         canvas.drawRRect(self.rounded_rect, paint)
 
@@ -60,7 +60,7 @@ class DrawOutline(BaseDrawCommand):
         self.color = color
         self.thickness = thickness
 
-    def execute(self, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas):
         paint = skia.Paint(
             Color=parse_color(self.color),
             StrokeWidth=self.thickness,
@@ -82,7 +82,7 @@ class DrawLine(BaseDrawCommand):
         self.color = color
         self.thickness = thickness
 
-    def execute(self, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas):
         path = (
             skia.Path()
             .moveTo(self.rect.left(), self.rect.top())

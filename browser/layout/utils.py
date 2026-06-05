@@ -2,7 +2,7 @@ from browser.layout.base import BaseLayout
 from browser.render.base import BaseDrawCommand
 
 
-def paint_tree(layout: BaseLayout, display_list: list[BaseDrawCommand]) -> None:
+def paint_tree(layout: BaseLayout, display_list: list[BaseDrawCommand]):
     """Recursively walk the layout tree and collect drawing commands (display list)."""
     should_paint = layout.should_paint()
     commands: list[BaseDrawCommand] = []

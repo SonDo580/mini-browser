@@ -30,7 +30,7 @@ class HTMLParser:
 
         return self.finish()
 
-    def add_text(self, text: str) -> None:
+    def add_text(self, text: str):
         """Add a text node as the child of the last unfinished element"""
         # Skip whitespace-only text nodes for simplicity
         if text.isspace():
@@ -43,7 +43,7 @@ class HTMLParser:
         node = Text(text, parent)
         parent.children.append(node)
 
-    def add_tag(self, tag: str) -> None:
+    def add_tag(self, tag: str):
         # Skip doctype declaration and comments
         # (<!DOCTYPE html>, <!-- example comment -->)
         if tag.startswith("!"):
@@ -79,7 +79,7 @@ class HTMLParser:
         node = Element(tag, attributes, parent)
         self.unfinished.append(node)
 
-    def implicit_tags(self, tag: str | None) -> None:
+    def implicit_tags(self, tag: str | None):
         """Insert missing implicit tags (html, head, body) to keep the tree valid."""
         while True:
             open_tags = [node.tag for node in self.unfinished]

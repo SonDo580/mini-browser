@@ -107,7 +107,7 @@ class InputLayout(BaseLayout):
 
         return ""
 
-    def set_y(self, value: float) -> None:
+    def set_y(self, value: float):
         """
         Set the y coordinate for current input/button.
         Called by LineLayout to align items along the baseline.

@@ -66,7 +66,7 @@ class JSContext:
         except dukpy.JSRuntimeError as e:
             print(f"Script {script_src} crashed: {e}")
 
-    def discard(self) -> None:
+    def discard(self):
         """Discard current JS context to prevent pending callbacks from executing."""
         self.discarded = True
 
@@ -117,7 +117,7 @@ class JSContext:
         element = self.handle_to_node[handle]
         return element.attributes.get(attribute, "")
 
-    def __set_inner_html(self, handle: int, html: str) -> None:
+    def __set_inner_html(self, handle: int, html: str):
         """innerHTML setter for an element."""
         # Our HTML parser only handle full document
         # -> wrap the snippet in html and body element
@@ -137,7 +137,7 @@ class JSContext:
 
     def __xml_http_request_send(
         self, method: str, url: str, body: str, is_async: bool, handle: int
-    ) -> None:
+    ):
         """Send an XMLHttpRequest."""
         full_url = self.tab.url.resolve(url)
 
@@ -169,7 +169,7 @@ class JSContext:
 
         threading.Thread(target=__run_load).start()
 
-    def __dispatch_xhr_onload(self, body: str, handle: int) -> None:
+    def __dispatch_xhr_onload(self, body: str, handle: int):
         """
         Trigger an XHR's onload handler.
         Skip if the JS context is already discarded.
@@ -177,7 +177,7 @@ class JSContext:
         if not self.discarded:
             self.interpreter.evaljs(XHR_ONLOAD_JS, body=body, handle=handle)
 
-    def __dispatch_settimeout(self, handle: int) -> None:
+    def __dispatch_settimeout(self, handle: int):
         """
         Execute a JS setTimeout callback.
         Skip if the JS context is already discarded.
@@ -185,15 +185,15 @@ class JSContext:
         if not self.discarded:
             self.interpreter.evaljs(SETTIMEOUT_JS, handle=handle)
 
-    def __set_timeout(self, handle: int, delay_ms: int) -> None:
+    def __set_timeout(self, handle: int, delay_ms: int):
         """Schedule a JS setTimeout callback."""
 
-        def __run_callback() -> None:
+        def __run_callback():
             # Don't call evaljs() directly
             task = Task(self.__dispatch_settimeout, handle)
             self.tab.task_runner.schedule_task(task)
 
         threading.Timer(delay_ms / 1000.0, __run_callback).start()
 
-    def __request_animation_frame(self) -> None:
+    def __request_animation_frame(self):
         self.tab.browser.set_needs_animation_frame(self.tab)

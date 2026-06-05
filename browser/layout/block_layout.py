@@ -41,7 +41,7 @@ class BlockLayout(BaseLayout):
         # (only used if layout mode is INLINE)
         self.cursor_x: float = 0  # relative to the block's x
 
-    def layout(self) -> None:
+    def layout(self):
         """Compute display info and recursively layout children."""
         # Horizontal position and width:
         # - Each block starts at its parent's left edge.
@@ -102,7 +102,7 @@ class BlockLayout(BaseLayout):
         # Element without children and is not input -> block
         return LayoutMode.BLOCK
 
-    def recurse(self, node: Text | Element) -> None:
+    def recurse(self, node: Text | Element):
         """Traverse the HTML tree recursively to add lines."""
         if isinstance(node, Text):
             for word in node.text.split():
@@ -116,14 +116,14 @@ class BlockLayout(BaseLayout):
                 for child in node.children:
                     self.recurse(child)
 
-    def new_line(self) -> None:
+    def new_line(self):
         """Start a new LineLayout."""
         self.cursor_x = 0
         previous: LineLayout | None = self.children[-1] if self.children else None
         line_layout = LineLayout(node=self.node, parent=self, previous=previous)
         self.children.append(line_layout)
 
-    def handle_word(self, node: Text, word: str) -> None:
+    def handle_word(self, node: Text, word: str):
         """
         Create a TextLayout and place it in the current LineLayout.
         Start a new line if adding word causes overflow.
@@ -146,7 +146,7 @@ class BlockLayout(BaseLayout):
         # Update horizontal position for the next item
         self.cursor_x += word_width + font.measureText(" ")
 
-    def handle_input(self, node: Element) -> None:
+    def handle_input(self, node: Element):
         """
         Create an InputLayout and place it in the current LineLayout.
         Start a new line if adding the input/button causes overflow.

@@ -8,6 +8,6 @@ class BaseDrawCommand(abc.ABC):
     rect: skia.Rect
 
     @abc.abstractmethod
-    def execute(self, canvas: skia.Canvas) -> None:
+    def execute(self, canvas: skia.Canvas):
         """Draw onto the canvas"""
         ...

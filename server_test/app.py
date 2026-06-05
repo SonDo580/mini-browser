@@ -177,7 +177,7 @@ def show_guestbook(session: dict[str, Any]) -> str:
     return output
 
 
-def add_entry(session: dict[str, Any], params: dict[str, str]) -> None:
+def add_entry(session: dict[str, Any], params: dict[str, str]):
     """Add new entry to guest book."""
     # Check if user is logged in
     if "user" not in session:

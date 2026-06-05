@@ -105,7 +105,7 @@ class Browser:
             raise Exception("No active tab.")
         return self._active_tab
 
-    def set_active_tab(self, tab: Tab) -> None:
+    def set_active_tab(self, tab: Tab):
         self._active_tab = tab
 
         # TODO: cache UI state to use when switching to loaded tab?
@@ -134,14 +134,14 @@ class Browser:
         task = Task(self.active_tab.load, url)
         self.active_tab.task_runner.schedule_task(task)
 
-    def set_needs_animation_frame(self, tab: Tab) -> None:
+    def set_needs_animation_frame(self, tab: Tab):
         """Only set the dirty flag if called from active tab."""
         self.lock.acquire(blocking=True)
         if tab == self.active_tab:
             self.needs_animation_frame = True
         self.lock.release()
 
-    def schedule_animation_frame(self) -> None:
+    def schedule_animation_frame(self):
         def callback():
             self.lock.acquire(blocking=True)
             scroll = self.active_tab_scroll
@@ -171,7 +171,7 @@ class Browser:
         self.needs_raster_and_draw = False
         self.lock.release()
 
-    def raster_tab(self) -> None:
+    def raster_tab(self):
         """Rasterize the whole active page to the tab surface."""
         if not self.active_tab_height:
             return
@@ -185,14 +185,14 @@ class Browser:
         for draw_command in self.active_tab_display_list:
             draw_command.execute(canvas)
 
-    def raster_chrome(self) -> None:
+    def raster_chrome(self):
         """Rasterize the browser chrome to the chrome surface."""
         canvas = self.chrome_surface.getCanvas()
         canvas.clear(skia.ColorWHITE)
         for draw_command in self.chrome.paint():
             draw_command.execute(canvas)
 
-    def draw(self) -> None:
+    def draw(self):
         """Composite chrome surface and tab surface onto Skia root surface,
         flush to SDL window surface and update it to reflect new pixels."""
         canvas = self.root_surface.getCanvas()
@@ -274,7 +274,7 @@ class Browser:
         )
         self.lock.release()
 
-    def handle_click(self, x: int, y: int) -> None:
+    def handle_click(self, x: int, y: int):
         self.lock.acquire(blocking=True)
         if y < self.chrome.bottom:
             # Click on the chrome area
@@ -291,7 +291,7 @@ class Browser:
             self.active_tab.task_runner.schedule_task(task)
         self.lock.release()
 
-    def handle_key(self, char: str) -> None:
+    def handle_key(self, char: str):
         self.lock.acquire(blocking=True)
         if self.focused_component == BrowserComponent.CHROME:
             if self.chrome.keypress(char):
@@ -301,14 +301,14 @@ class Browser:
             self.active_tab.task_runner.schedule_task(task)
         self.lock.release()
 
-    def handle_enter(self) -> None:
+    def handle_enter(self):
         self.lock.acquire(blocking=True)
         if self.focused_component == BrowserComponent.CHROME:
             if self.chrome.enter():
                 self.set_needs_raster_and_draw()
         self.lock.release()
 
-    def handle_backspace(self) -> None:
+    def handle_backspace(self):
         self.lock.acquire(blocking=True)
         if self.focused_component == BrowserComponent.CHROME:
             if self.chrome.backspace():

@@ -64,7 +64,7 @@ class TextLayout(BaseLayout):
             )
         ]
 
-    def set_y(self, value: float) -> None:
+    def set_y(self, value: float):
         """
         Set the y coordinate for current word.
         Called by LineLayout to align items along the baseline.

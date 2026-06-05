@@ -3,7 +3,7 @@ from browser.css.css_parser import CSSParser, CSSRule
 from browser.css.default import INHERITED_PROPERTIES
 
 
-def style(node: Text | Element, rules: list[CSSRule]) -> None:
+def style(node: Text | Element, rules: list[CSSRule]):
     """
     Apply CSS rules to a HTML node.
 
