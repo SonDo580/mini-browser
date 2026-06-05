@@ -49,6 +49,9 @@ def handle_request(
     if method == "GET" and url_path == "/count":
         return "200 OK", show_count()
 
+    if method == "GET" and url_path == "/animate":
+        return "200 OK", test_animate()
+
     return not_found(url_path, method)
 
 
@@ -211,5 +214,12 @@ def show_count():
 <!DOCTYPE html>
 <div>Let's count up to 99!</div>
 <div>Output</div>
-<script src=/static/raf.js></script>
+<script src="/static/raf.js"></script>
+"""
+
+def test_animate():
+    return """
+<!DOCTYPE html>
+<div>This text fades</div>
+<script src="/static/animate.js"></script>
 """

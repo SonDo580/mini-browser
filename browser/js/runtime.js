@@ -63,6 +63,12 @@ Node.prototype.dispatchEvent = function (event) {
   return event.doDefault;
 };
 
+Object.defineProperty(Node.prototype, "style", {
+  set: function (s) {
+    call_python("style_set", this.handle, s.toString());
+  }
+});
+
 // ===== Global objects =====
 console = {
   log: function (x) {

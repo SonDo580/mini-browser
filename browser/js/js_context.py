@@ -55,6 +55,7 @@ class JSContext:
         self.interpreter.export_function(
             "requestAnimationFrame", self.__request_animation_frame
         )
+        self.interpreter.export_function("style_set", self.__set_style)
 
         # Execute JS runtime code before any user code
         self.interpreter.evaljs(RUNTIME_JS)
@@ -197,3 +198,9 @@ class JSContext:
 
     def __request_animation_frame(self):
         self.tab.browser.set_needs_animation_frame(self.tab)
+
+    def __set_style(self, handle: int, s: str):
+        """style setter for an element."""
+        element = self.handle_to_node[handle]
+        element.attributes["style"] = s
+        self.tab.set_needs_render()
